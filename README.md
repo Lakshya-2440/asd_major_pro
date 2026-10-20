@@ -1,32 +1,31 @@
-# 🐄 Image-Based Animal Type Classification for Cattle and Buffaloes
+# 🐄 Auto-ATC: AI-Based Animal Type Classification for Cattle and Buffaloes
 
-> An AI-powered system that evaluates the physical (conformation) traits of cattle and buffaloes from photographs, replacing slow, subjective manual scoring with fast, consistent, and objective results.
+> A smartphone-first system that measures a cattle or buffalo's body structure from photos, assigns standardized Animal Type Classification (ATC) scores, and saves the result as a structured record ready to sync with the Bharat Pashudhan App (BPA).
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-DeepLearning-red)
-![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![Node](https://img.shields.io/badge/Node.js-18+-green)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
 ---
 
 ## 📌 Table of Contents
 
 1. [Problem Statement](#-problem-statement)
-2. [Background](#-background)
-3. [Our Solution](#-our-solution)
-4. [Key Features](#-key-features)
-5. [System Architecture](#-system-architecture)
-6. [Traits Evaluated](#-traits-evaluated)
+2. [Our Approach](#-our-approach)
+3. [Key Features](#-key-features)
+4. [Architecture](#-architecture)
+5. [Image Capture Protocol](#-image-capture-protocol)
+6. [Traits and Scoring](#-traits-and-scoring)
 7. [Tech Stack](#-tech-stack)
 8. [Project Structure](#-project-structure)
 9. [Getting Started](#-getting-started)
-10. [Usage](#-usage)
-11. [Dataset](#-dataset)
-12. [Model Performance](#-model-performance)
-13. [Impact](#-impact)
+10. [API Overview](#-api-overview)
+11. [BPA Integration](#-bpa-integration)
+12. [Success Metrics](#-success-metrics)
+13. [Limitations](#-limitations)
 14. [Roadmap](#-roadmap)
 15. [Team](#-team)
-16. [License](#-license)
 
 ---
 
@@ -34,91 +33,95 @@
 
 **Image Based Animal Type Classification for Cattle and Buffaloes**
 
-Animal Type Classification (ATC) is the process of scoring an animal's body structure (height, body length, chest width, rump angle, udder and leg traits, etc.) on a standard linear scale. These scores are used to judge breeding value, productivity, and longevity.
+Under the Rashtriya Gokul Mission (RGM), a trained Animal Typer inspects each animal, judges and measures body parts by eye and by hand, and enters scores in BPA. Even trained people make inconsistent calls because of fatigue, bias, and measurement error. This weakens the data used in Progeny Testing (PT) and Pedigree Selection (PS).
 
-Today, ATC is done **manually by trained field workers**, which leads to:
-
-- **Subjectivity**: different evaluators give different scores for the same animal.
-- **Low scalability**: millions of animals cannot be assessed by a limited workforce.
-- **Slow and costly data collection**: requires physical measurement, animal handling, and travel.
-- **Poor data quality**: inconsistent or incomplete records reduce the value of breeding programs.
-
-The goal is to build an **image-based system** that can automatically classify and score cattle and buffaloes from photographs taken in the field, using a smartphone.
+**Goal:** replace visual estimation and manual measurement with image-based measurement and rule-driven scoring, so the same animal gets the same score no matter who takes the photo.
 
 ---
 
-## 📖 Background
+## 💡 Our Approach
 
-Cattle and buffaloes are central to India's dairy economy and rural livelihoods. Genetic improvement programs depend on accurate, large-scale phenotypic data, and body conformation is one of the most important inputs. Automating ATC makes it possible to capture this data at scale and feed it into digital livestock platforms and breed improvement schemes.
+We deliberately **do not train any models**. Instead we combine:
 
----
+1. **Pretrained models via the Hugging Face Inference API** for animal detection and segmentation.
+2. **Classical computer vision (OpenCV)** for image quality checks and ArUco marker detection (real-world scale).
+3. **Geometry on the segmentation mask** to locate body landmarks (withers, hooves, rump, etc.).
+4. **Human-in-the-loop adjustment**: the typer can drag landmarks to correct them before scoring.
+5. **Config-driven rule-based scoring** (1 to 9 scale), deterministic and explainable.
 
-## 💡 Our Solution
-
-A computer-vision pipeline that:
-
-1. Accepts one or more photos of an animal (side view, rear view, etc.).
-2. Checks image quality and detects the animal.
-3. Segments the animal body and locates anatomical **key points**.
-4. Converts key points into real-world body **measurements**.
-5. Scores each trait on a standard **linear scale** and produces an overall classification.
-6. Returns a structured report through a mobile-friendly app and API.
+```
+Photo + reference marker → quality check → HF segmentation → landmarks
+→ pixel-to-cm → measurements → 1-9 trait scores → saved record → BPA
+```
 
 ---
 
 ## ✨ Key Features
 
-- 📷 **Smartphone-friendly image capture** with on-screen guidance for correct pose and distance
-- 🐃 **Species and breed identification** for cattle vs. buffalo
-- 🦴 **Anatomical keypoint detection** for body landmarks
-- 📏 **Automatic body measurements** (height at withers, body length, chest width, rump width, etc.)
-- 🔢 **Linear trait scoring** (e.g., 1–9 scale) with an overall type score
-- 🧪 **Image quality validation** (blur, lighting, occlusion, wrong angle)
-- 📴 **Offline-capable inference** for areas with poor connectivity *(optional/roadmap)*
-- 🔌 **REST API** for integration with existing livestock registration and breeding platforms
-- 📊 **Exportable reports** (JSON / PDF / CSV)
+- 📷 Camera capture with on-screen guidance (outline, distance, level indicator)
+- 🧪 Instant quality feedback (blur, lighting, cropping, wrong angle)
+- 📏 Measurements in cm and degrees with a confidence value
+- ✋ Landmark adjustment and score override, with the AI value and final value both stored
+- 🔢 Rule-based 1 to 9 trait scores plus an overall score, with breed-aware thresholds in config files
+- 🗂 Records with images, measurements, scores, quality flags, and pipeline version
+- 📤 CSV and JSON export
+- 🔌 BPA adapter (tested against a mock BPA endpoint) with retry and sync status
+- 📱 Installable PWA for Android Chrome and iOS Safari
 
 ---
 
-## 🏗 System Architecture
+## 🏗 Architecture
 
 ```mermaid
 flowchart LR
-    A[Image Capture<br/>Mobile / Web] --> B[Quality Check]
-    B --> C[Animal Detection<br/>& Segmentation]
-    C --> D[Keypoint Detection]
-    D --> E[Measurement<br/>Estimation]
-    E --> F[Trait Scoring<br/>Model]
-    F --> G[Report &<br/>API Output]
-    C --> H[Species / Breed<br/>Classifier]
-    H --> G
+    A[React PWA] --> B[Node.js API]
+    B --> C[(PostgreSQL)]
+    B --> D[Python Analysis Service<br/>FastAPI + OpenCV]
+    D --> E[Hugging Face<br/>Inference API]
+    B --> F[BPA Adapter]
+    F --> G[BPA / Mock BPA]
 ```
 
-**Pipeline stages**
-
-| Stage | Purpose | Approach |
+| Component | Folder | Responsibility |
 |---|---|---|
-| Quality check | Reject unusable images | Blur/brightness checks, pose validation |
-| Detection & segmentation | Isolate the animal from the background | YOLO / Mask R-CNN / SAM |
-| Keypoint detection | Locate withers, hip, pin bones, hooves, etc. | HRNet / YOLO-Pose |
-| Measurement | Pixel-to-real-world conversion | Reference object or camera calibration |
-| Trait scoring | Map measurements to linear scores | Regression / classification head |
-| Output | Present results | FastAPI + web/mobile UI |
+| Frontend | `app/` | Camera capture, guidance overlay, landmark adjust, results, records, export |
+| Backend | `api/` | Auth, evaluations, image storage, calls analysis service, BPA adapter, exports |
+| Analysis service | `src/` | Quality checks, HF API calls, marker detection, landmarks, measurement, scoring |
+| Config | `configs/` | Scoring thresholds per species and breed (YAML) |
+
+> The architecture (Node backend plus Python service vs. a single Python backend) is still to be confirmed by the team.
 
 ---
 
-## 🧬 Traits Evaluated
+## 📸 Image Capture Protocol
 
-| Category | Example Traits |
-|---|---|
-| **Frame / size** | Stature (height at withers), body length, chest width, body depth |
-| **Dairy strength** | Angularity, rib openness |
-| **Rump** | Rump angle, rump width |
-| **Legs & feet** | Rear legs (side view), foot angle |
-| **Udder** *(if rear/side udder images available)* | Udder depth, attachment, teat placement |
-| **Overall** | Final type score / grade |
+A single photo has no real-world scale, so a fixed protocol and a reference marker are what make centimetre values trustworthy.
 
-> Trait list can be adjusted to match the scoring standard your evaluators use.
+- Animal standing squarely on level ground, head natural and up, all four legs visible
+- True side view, camera at roughly mid-body height and perpendicular to the animal, about 4 to 5 m away (to be tuned)
+- Whole animal in frame including all four hooves; no people, ropes, or other animals overlapping
+- A reference object of known size in the **same plane as the animal's body** (printed ArUco marker on a stand, or a 1 m rod with marked ends)
+- Even daylight; avoid strong backlight and harsh shadows
+- Rear view (stretch): animal centered, tail aside, both pin bones and hooves visible
+
+---
+
+## 🧬 Traits and Scoring
+
+Scoring is **rule-based**: each measurement maps to a 1 to 9 score through thresholds in `configs/`, set per species and breed from ATC guidelines and expert input.
+
+| Trait | View | How it is measured | Priority |
+|---|---|---|---|
+| Stature (height at withers) | Side | Withers to ground, scaled by marker | MVP |
+| Body length | Side | Shoulder point to pin bone | MVP |
+| Body depth | Side | Withers to brisket | MVP |
+| Rump angle | Side | Slope of hip to pin bone line | MVP |
+| Rump width | Rear | Distance between hip points | Stretch |
+| Rear legs (side view) | Side | Hock angle | Stretch |
+| Chest width | Front | Width at chest floor | Stretch |
+| Udder traits | Rear/side | Depth, attachment, teat placement | Stretch |
+
+> The exact trait list and scale must follow the BPA ATC form and ICAR/NDDB guidelines (to be confirmed).
 
 ---
 
@@ -126,42 +129,36 @@ flowchart LR
 
 | Layer | Technologies |
 |---|---|
-| **Language** | Python 3.10+ |
-| **Deep learning** | PyTorch, torchvision, Ultralytics YOLO |
-| **Computer vision** | OpenCV, Albumentations, Segment Anything (optional) |
-| **Backend** | FastAPI, Uvicorn |
-| **Frontend / App** | React / Flutter / Streamlit *(choose one)* |
-| **Database** | PostgreSQL / SQLite |
-| **Deployment** | Docker, ONNX / TensorFlow Lite for edge inference |
-| **Experiment tracking** | Weights & Biases / MLflow |
+| Frontend | React (Vite), PWA |
+| Backend | Node.js, Express |
+| Analysis service | Python 3.10+, FastAPI, OpenCV (incl. ArUco), NumPy, Pydantic |
+| Pretrained models | Hugging Face Inference API (detection / segmentation) |
+| Database | PostgreSQL |
+| Config | YAML |
+| Deployment | Docker, docker-compose |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-animal-type-classification/
-├── data/
-│   ├── raw/                 # Original images
-│   ├── processed/           # Cleaned / resized images
-│   └── annotations/         # Keypoint & trait labels
-├── notebooks/               # EDA and experiments
-├── src/
-│   ├── detection/           # Animal detection & segmentation
-│   ├── keypoints/           # Keypoint models
-│   ├── measurement/         # Pixel → real-world conversion
-│   ├── scoring/             # Trait scoring models
-│   ├── classification/      # Species / breed classifier
-│   ├── utils/
-│   └── pipeline.py          # End-to-end inference
-├── api/
-│   └── main.py              # FastAPI app
-├── app/                     # Web / mobile frontend
-├── models/                  # Trained weights
+auto-atc/
+├── app/                  # React PWA
+├── api/                  # Node.js backend
+├── src/                  # Python analysis service
+│   ├── quality/          # Blur, brightness, framing checks
+│   ├── hf_client.py      # Hugging Face Inference API wrapper
+│   ├── marker.py         # ArUco detection, pixel-to-cm
+│   ├── landmarks.py      # Landmarks from mask geometry
+│   ├── measurement.py    # Height, length, depth, rump angle
+│   ├── scoring.py        # Config-driven 1-9 scoring
+│   └── main.py           # FastAPI: /predict, /health
+├── configs/              # Scoring thresholds (YAML)
+├── data/                 # Small validation set + notes
+├── notebooks/            # Experiments
 ├── tests/
-├── configs/                 # Training & inference configs
+├── docker-compose.yml
 ├── requirements.txt
-├── Dockerfile
 └── README.md
 ```
 
@@ -171,155 +168,137 @@ animal-type-classification/
 
 ### Prerequisites
 
-- Python 3.10 or higher
-- (Recommended) NVIDIA GPU with CUDA for training
-- Git
+- Python 3.10+, Node.js 18+, Docker
+- A free [Hugging Face account](https://huggingface.co/join) and access token
 
-### Installation
+### Setup
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/<your-username>/animal-type-classification.git
-cd animal-type-classification
+git clone https://github.com/<your-username>/auto-atc.git
+cd auto-atc
 
-# 2. Create a virtual environment
-python -m venv venv
-source venv/bin/activate        # On Windows: venv\Scripts\activate
+# Environment variables (never commit this file)
+cp .env.example .env
+# then set HF_TOKEN=<your token> in .env
 
-# 3. Install dependencies
+# Database
+docker-compose up -d
+
+# Analysis service
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
+uvicorn src.main:app --reload --port 8000
 
-# 4. Download pretrained weights
-python scripts/download_weights.py
+# Backend
+cd api && npm install && npm run dev
+
+# Frontend
+cd app && npm install && npm run dev
 ```
 
 ---
 
-## ▶️ Usage
+## 🔌 API Overview
 
-### Run inference on a single image
+**Backend (Node.js)**
 
-```bash
-python src/pipeline.py --image path/to/animal.jpg --output results/
-```
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/login` | Login |
+| POST / GET | `/api/animals` | Register / look up by tag |
+| POST | `/api/evaluations` | Upload images, run analysis |
+| GET | `/api/evaluations`, `/api/evaluations/:id` | List / view |
+| PATCH | `/api/evaluations/:id/scores` | Override a score |
+| POST | `/api/evaluations/:id/sync-bpa` | Sync to BPA |
+| GET | `/api/evaluations/export?format=csv\|json` | Export |
 
-### Start the API server
+**Analysis service (FastAPI)**
 
-```bash
-uvicorn api.main:app --reload --port 8000
-```
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/predict` | Images + metadata in; quality flags, landmarks, measurements, scores out |
+| GET | `/health` | Health check |
 
-### Example API request
-
-```bash
-curl -X POST "http://localhost:8000/predict" \
-  -F "side_view=@side.jpg" \
-  -F "rear_view=@rear.jpg"
-```
-
-### Example response
+**Example `/predict` response**
 
 ```json
 {
   "species": "buffalo",
-  "breed": "Murrah",
-  "confidence": 0.94,
-  "measurements": {
-    "height_at_withers_cm": 138.2,
-    "body_length_cm": 152.6,
-    "chest_width_cm": 54.1
-  },
-  "trait_scores": {
-    "stature": 7,
-    "body_length": 6,
-    "rump_angle": 5,
-    "rear_legs": 6
-  },
-  "overall_score": 78,
-  "quality_flags": []
+  "quality_flags": [],
+  "landmarks": { "withers": [412, 188], "pin_bone": [910, 240] },
+  "measurements": [
+    { "name": "height_at_withers", "value": 138.2, "unit": "cm", "confidence": 0.82 },
+    { "name": "rump_angle", "value": 21.5, "unit": "deg", "confidence": 0.74 }
+  ],
+  "trait_scores": { "stature": 7, "body_length": 6, "rump_angle": 5 },
+  "overall_score": 6,
+  "pipeline_version": "0.1.0"
 }
 ```
 
-### Train a model
+---
 
-```bash
-python src/train.py --config configs/keypoints.yaml
-```
+## 🔗 BPA Integration
+
+We do not yet have BPA API documentation or sandbox access.
+
+1. Define our internal record format
+2. Write an adapter interface and field-mapping table to the BPA ATC record
+3. Build a mock BPA service to demo the full flow
+4. Switch to the real endpoint when access is granted
+
+**Fallback:** export a BPA-compatible CSV or JSON for manual upload. Syncing is idempotent, retried on failure, and its status is visible in the app.
 
 ---
 
-## 🗂 Dataset
+## 📈 Success Metrics (proposed)
 
-- **Sources**: field-collected images, partner farms/dairies, and public datasets.
-- **Labels**: species/breed, keypoints, body measurements, and expert-assigned linear scores.
-- **Capture protocol**: standing animal on level ground, true side view and rear view, full body in frame, a reference scale object in the shot.
-- **Augmentation**: lighting, rotation, scale, blur, and background variation.
-
-> ⚠️ Add details of your dataset size, class distribution, and license here once finalized.
-
----
-
-## 📈 Model Performance
-
-| Task | Metric | Result |
-|---|---|---|
-| Species / breed classification | Accuracy / F1 | _TBD_ |
-| Animal detection | mAP@0.5 | _TBD_ |
-| Keypoint detection | PCK / OKS | _TBD_ |
-| Body measurements | MAE (cm) | _TBD_ |
-| Trait scoring | Agreement with experts (QWK / MAE) | _TBD_ |
+| Metric | Target |
+|---|---|
+| Height at withers vs. tape measurement | Within 3 cm |
+| Agreement with expert scores | QWK ≥ 0.6; within 1 point on ≥ 80% of traits |
+| Evaluation time per animal | ≤ 3 minutes |
+| Captures passing quality check within 2 attempts | ≥ 90% |
+| End-to-end latency | ≤ 10 seconds |
+| Lost records in sync tests | Zero |
 
 ---
 
-## 🌍 Impact
+## ⚠️ Limitations
 
-- **Consistent, unbiased** scoring across regions and evaluators
-- **Scalable**: a field worker with a phone can assess far more animals per day
-- **Better breeding decisions** through high-quality phenotypic data
-- **Lower cost** and less stress on animals compared to manual handling
-- **Digital records** that plug into livestock registries and breed improvement programs
+- Accuracy depends heavily on following the capture protocol (pose, angle, marker placement)
+- Hosted Hugging Face models can have rate limits and cold-start delays, so latency may vary
+- Landmarks derived from geometry are approximate; the adjust step exists for this reason
+- Rule thresholds need calibration against expert scores before real-world use
+- Real BPA integration depends on access being granted
 
 ---
 
 ## 🗺 Roadmap
 
-- [x] Problem definition and data collection plan
-- [ ] Dataset collection and annotation
-- [ ] Baseline detection and keypoint models
-- [ ] Measurement calibration module
-- [ ] Trait scoring model
-- [ ] REST API
-- [ ] Mobile/web application
-- [ ] Offline (on-device) inference
-- [ ] Multi-breed and multi-region validation
-- [ ] Integration with national livestock platforms
+- [ ] **Phase 0:** project setup, docker-compose, base configs
+- [ ] **Phase 1:** walking skeleton end to end with dummy output
+- [ ] **Phase 2:** capture screen, quality checks, small validation set
+- [ ] **Phase 3:** HF segmentation, marker scale, landmarks, measurements, scoring engine
+- [ ] **Phase 4:** auth, records, override, export, BPA adapter and mock
+- [ ] **Phase 5:** usability testing, offline queue, Dockerized deployment, final docs
 
 ---
 
 ## 👥 Team
 
-| Name | Role | Contact |
-|---|---|---|
-| _Your Name_ | Team Lead / ML | _email / GitHub_ |
-| _Member 2_ | Computer Vision | |
-| _Member 3_ | Backend | |
-| _Member 4_ | Frontend / UI | |
+| Name | Role |
+|---|---|
+| _Member A_ | Frontend and UX (`app/`) |
+| _Member B_ | Analysis service and data (`src/`, `data/`) |
+| _Member C_ | Backend, database, BPA adapter (`api/`) |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome. Please fork the repo, create a feature branch, and open a pull request with a clear description of your changes.
-
----
+Branches: `feat/`, `fix/`, `chore/`, `docs/`. Commits follow Conventional Commits. Every PR needs a description and how to test it; `main` must always run.
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgements
-
-- Veterinary and animal husbandry experts who guided the trait definitions
-- Open-source communities behind PyTorch, OpenCV, and Ultralytics
+MIT
