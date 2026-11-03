@@ -1,5 +1,5 @@
 import express from 'express';
-import { requestLogger } from './middlewares';
+import { requestLogger } from './middlewares/requestLogger.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 export function buildApp() {
