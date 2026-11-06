@@ -298,12 +298,13 @@ python src/train.py --config configs/keypoints.yaml
 
 ## 👥 Team
 
-| Name | Role | Contact |
+| Name | Role | Focus Area |
 |---|---|---|
-| _Your Name_ | Team Lead / ML | _email / GitHub_ |
-| _Member 2_ | Computer Vision | |
-| _Member 3_ | Backend | |
-| _Member 4_ | Frontend / UI | |
+| **Lakshya** | Team Lead / Computer Vision | Pretrained HF models, OpenCV quality checks, ArUco scale, mask geometry landmarks, measurements & scoring (`src/`, `configs/`, `tests/`) |
+| **Priyanshu** | Backend Engineer | Node.js / Express API, PostgreSQL database, authentication, evaluation records, and BPA mock adapter (`api/`) |
+| **Manoj** | Frontend Engineer | Mobile-first React PWA, camera capture with level indicator, interactive landmark drag canvas, review UI (`app/`) |
+
+> Full 30-PR sprint task breakdown and prompts available in [PROMPTS.md](PROMPTS.md).
 
 ---
 
