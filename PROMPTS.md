@@ -1,14 +1,25 @@
 # Auto-ATC: 30-Prompt Development Roadmap
 
-Direct serial list: **PR 1 to PR 30** (10 PRs / commits each for **Lakshya**, **Priyanshu**, and **Manoj**).
+Sequential Round-Robin Breakdown: **Lakshya → Priyanshu → Manoj** across 10 iterative rounds (PR 1 to PR 30).
 
-| PR Range | Assignee | Focus Area | Directory |
+## Sprint Schedule
+
+| Round | Lakshya (CV / ML) | Priyanshu (Backend / DB) | Manoj (Frontend / PWA) |
 |---|---|---|---|
-| **PR 1 – PR 10** | **Lakshya** | Computer Vision, HF Segmentation, Landmarks & Scoring | `src/`, `configs/`, `tests/` |
-| **PR 11 – PR 20** | **Priyanshu** | Backend Express API, PostgreSQL DB & BPA Integration | `api/`, `docker-compose.yml` |
-| **PR 21 – PR 30** | **Manoj** | Frontend React PWA, Interactive Canvas & UX | `app/` |
+| **Round 1: Scaffolding** | **PR 1**: FastAPI Service Scaffold | **PR 2**: Express TS Backend Scaffold | **PR 3**: React Vite PWA Scaffold |
+| **Round 2: Foundation & DB** | **PR 4**: Image Quality Checks (OpenCV) | **PR 5**: PostgreSQL Migrations & Schema | **PR 6**: Login Screen & Auth Context |
+| **Round 3: Scale & Identification** | **PR 7**: ArUco Marker Scale Factor | **PR 8**: JWT Auth & RBAC Middleware | **PR 9**: Animal Tag Lookup & Form |
+| **Round 4: Detection & Camera** | **PR 10**: Hugging Face Segmentation Client | **PR 11**: Animal Registry CRUD API | **PR 12**: Camera Capture & Level HUD |
+| **Round 5: Landmarks & Uploads** | **PR 13**: Mask Landmark Extraction | **PR 14**: Image Upload & Draft Evaluation | **PR 15**: Image Preview & Quality Modal |
+| **Round 6: Measurement & Canvas** | **PR 16**: Body Measurements (cm/deg) | **PR 17**: Express to Python Client | **PR 18**: Interactive Landmark Canvas |
+| **Round 7: Scoring & Review** | **PR 19**: 1-9 Trait Scoring Engine | **PR 20**: Evaluations List & Filter API | **PR 21**: Evaluation Review & Overrides |
+| **Round 8: Adjustments & History** | **PR 22**: Fast `/recompute` Endpoint | **PR 23**: Landmark Patch & Score Audit API | **PR 24**: Evaluations History Screen |
+| **Round 9: End-to-End & Exports** | **PR 25**: Full E2E Pipeline Integration | **PR 26**: CSV & JSON Export API | **PR 27**: Export Triggers & BPA Widget |
+| **Round 10: Delivery & Offline** | **PR 28**: Validation Benchmarks Suite | **PR 29**: BPA Adapter & Mock Sync Server | **PR 30**: Offline Storage & Service Worker |
 
 ---
+
+## Round 1: Scaffolding
 
 ### PR 1: `chore(service): init python fastapi service and project structure`
 **Name:** Lakshya  
@@ -40,7 +51,64 @@ Requirements:
 
 ---
 
-### PR 2: `feat(cv): implement image quality checks for blur and lighting`
+### PR 2: `chore(api): scaffold express typescript backend and env config`
+**Name:** Priyanshu  
+**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
+**Prompt:**
+```text
+Scaffold the Node.js Express backend API with TypeScript.
+Target directory: api/.
+
+Requirements:
+1. Initialize package.json with dependencies: express, cors, dotenv, helmet, morgan, multer, pg, zod, jsonwebtoken, bcryptjs, ts-node, typescript, @types/*.
+2. Setup tsconfig.json and project structure:
+   - api/src/index.ts (entry point)
+   - api/src/app.ts (Express app configuration)
+   - api/src/routes/
+   - api/src/controllers/
+   - api/src/services/
+   - api/src/middlewares/
+   - api/src/config/
+3. Configure environment variables via api/.env.example: PORT, DATABASE_URL, JWT_SECRET, ANALYSIS_SERVICE_URL, BPA_MOCK_URL.
+4. Add health check endpoint GET /api/health returning status, uptime, and database connection state.
+5. Setup npm scripts: dev, build, start, lint, test.
+```
+
+---
+
+### PR 3: `chore(app): scaffold react vite pwa with tailwind css and router`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Scaffold the frontend mobile-first PWA for Auto-ATC.
+Target directory: app/.
+
+Requirements:
+1. Initialize Vite React project with TypeScript:
+   - Install tailwindcss, postcss, autoprefixer, react-router-dom, lucide-react, vite-plugin-pwa, axios.
+2. Configure Tailwind CSS with mobile-first sunlight-readable theme (high contrast, clear typography, large touch targets min 48px).
+3. Setup vite-plugin-pwa in vite.config.ts with manifest:
+   - name: "Auto-ATC"
+   - short_name: "AutoATC"
+   - theme_color: "#16a34a"
+   - icons for 192x192 and 512x512.
+4. Setup React Router in app/src/App.tsx with route layout and placeholders:
+   - /login
+   - /dashboard
+   - /animals/new
+   - /evaluations/capture
+   - /evaluations/:id/adjust
+   - /evaluations/:id/review
+   - /evaluations
+5. Create mobile navigation shell with bottom navigation bar (Home, New Scan, History, Profile).
+```
+
+---
+
+## Round 2: Foundation & Database
+
+### PR 4: `feat(cv): implement image quality checks for blur and lighting`
 **Name:** Lakshya  
 **Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
 **Prompt:**
@@ -66,7 +134,57 @@ Requirements:
 
 ---
 
-### PR 3: `feat(cv): implement aruco reference marker detection and scale factor`
+### PR 5: `feat(db): setup postgres docker-compose and knex/prisma migrations`
+**Name:** Priyanshu  
+**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
+**Prompt:**
+```text
+Setup PostgreSQL database with Docker Compose and initial database migration schema based on PRD Section 12.
+Target files: docker-compose.yml, api/prisma/schema.prisma (or Knex migrations in api/src/db/migrations/).
+
+Requirements:
+1. Create docker-compose.yml with:
+   - postgres:15 service with healthcheck, persistent volume, and exposed port 5432.
+2. Implement relational schema covering:
+   - users (id, name, email, password_hash, role ['typer', 'supervisor', 'admin'], created_at)
+   - animals (id, tag_id UNIQUE, species, breed, owner_name, village, created_at)
+   - evaluations (id, animal_id, evaluator_id, status ['draft', 'analyzed', 'confirmed', 'synced'], overall_score, pipeline_version, created_at, updated_at)
+   - images (id, evaluation_id, view_type ['side', 'rear', 'front'], file_path, quality_flags JSONB)
+   - landmarks (id, evaluation_id, name, estimated_pos JSONB, corrected_pos JSONB, confidence FLOAT)
+   - measurements (id, evaluation_id, name, value FLOAT, unit, confidence FLOAT)
+   - trait_scores (id, evaluation_id, trait_name, ai_score INT, final_score INT, override_reason TEXT)
+   - bpa_sync (id, evaluation_id, status ['pending', 'synced', 'failed'], attempts INT, last_error TEXT, synced_at TIMESTAMP)
+3. Add seed script (api/prisma/seed.ts or db/seed.js) creating default admin and field typer accounts.
+```
+
+---
+
+### PR 6: `feat(ui): implement login screen and auth session state`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement authentication UI and session management in the React app.
+Target files: app/src/pages/Login.tsx, app/src/context/AuthContext.tsx, app/src/services/api.ts.
+
+Requirements:
+1. Create AuthContext providing: user, token, login(email, password), logout(), isAuthenticated, role.
+2. Configure Axios instance in app/src/services/api.ts with request interceptor attaching Bearer token from localStorage.
+3. Build Login page:
+   - Clean, outdoor-friendly UI with high contrast input fields for Email and Password.
+   - "Remember Me" toggle and role indicator.
+   - Clear error alert for invalid credentials.
+   - Loading spinner state during API request.
+   - Redirect to /dashboard upon successful login.
+4. Add ProtectedRoute component checking authentication and redirecting unauthorized users to /login.
+5. Add unit tests for AuthContext and Login form submission.
+```
+
+---
+
+## Round 3: Scale & Identification
+
+### PR 7: `feat(cv): implement aruco reference marker detection and scale factor`
 **Name:** Lakshya  
 **Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
 **Prompt:**
@@ -91,7 +209,57 @@ Requirements:
 
 ---
 
-### PR 4: `feat(ml): implement huggingface inference client for animal segmentation`
+### PR 8: `feat(auth): implement jwt auth and role-based access control`
+**Name:** Priyanshu  
+**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
+**Prompt:**
+```text
+Implement authentication and role-based access control middleware in the Express API.
+Target files: api/src/routes/auth.ts, api/src/controllers/auth.controller.ts, api/src/middlewares/auth.middleware.ts.
+
+Requirements:
+1. Endpoint POST /api/auth/login:
+   - Validate email/password using Zod schema.
+   - Verify hashed password with bcrypt.
+   - Generate JWT containing { userId, role, name }.
+   - Return { token, user: { id, name, role, email } }.
+2. Middleware authenticateToken:
+   - Parse Bearer token from Authorization header.
+   - Verify token signature, attach user to request object req.user.
+3. Middleware authorizeRoles(...allowedRoles: string[]):
+   - Check if req.user.role is authorized, otherwise return 403 Forbidden.
+4. Add route GET /api/auth/me to return current session user profile.
+5. Unit tests covering login success, invalid password, expired token, and forbidden role access.
+```
+
+---
+
+### PR 9: `feat(ui): implement animal tag lookup and registration form`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement animal identification and selection workflow before image capture.
+Target files: app/src/pages/AnimalLookup.tsx, app/src/components/AnimalFormModal.tsx.
+
+Requirements:
+1. Tag lookup screen:
+   - Large numeric/alphanumeric search bar for Animal Tag ID.
+   - Debounced search query against backend GET /api/animals?tag=.
+   - If animal found: display card with Tag ID, Species, Breed, Village, Owner, and "Start Evaluation" button navigating to /evaluations/capture?animalId=...
+   - If not found: show empty state with "Register New Animal" action.
+2. Registration modal/form:
+   - Fields: Tag ID (required), Species (Dropdown: "Cattle" | "Buffalo"), Breed (Dropdown dependent on species: Gir, Sahiwal, Murrah, Other), Owner Name, Village.
+   - Form validation with error messages.
+   - On submit, call POST /api/animals, select the newly created animal, and transition to capture.
+3. Sunlight-friendly UI styling with large clickable cards.
+```
+
+---
+
+## Round 4: Detection & Camera
+
+### PR 10: `feat(ml): implement huggingface inference client for animal segmentation`
 **Name:** Lakshya  
 **Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
 **Prompt:**
@@ -115,7 +283,59 @@ Requirements:
 
 ---
 
-### PR 5: `feat(geometry): extract anatomical landmarks from segmentation mask`
+### PR 11: `feat(animals): implement animal registration and tag lookup api`
+**Name:** Priyanshu  
+**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
+**Prompt:**
+```text
+Implement animal registry CRUD endpoints for field typers.
+Target files: api/src/routes/animals.ts, api/src/controllers/animals.controller.ts, api/src/services/animals.service.ts.
+
+Requirements:
+1. Endpoint POST /api/animals:
+   - Validate body: tag_id (unique string), species ('cattle' | 'buffalo'), breed (string), owner_name (string), village (string).
+   - If tag_id already exists, return 409 Conflict.
+   - Save to database and return created animal record.
+2. Endpoint GET /api/animals:
+   - Query param ?tag= to search by tag ID prefix or exact match.
+   - Return animal details along with count of previous evaluations.
+3. Endpoint GET /api/animals/:id:
+   - Return animal profile and past evaluation history summary.
+4. Input validation using Zod. Protected with authenticateToken.
+5. Unit tests testing tag search, creation, and duplicate tag prevention.
+```
+
+---
+
+### PR 12: `feat(camera): implement camera capture with alignment overlay and level sensor`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement the camera capture interface with live guidance overlay and device orientation level check.
+Target files: app/src/pages/CaptureScreen.tsx, app/src/components/GuidanceOverlay.tsx, app/src/hooks/useDeviceOrientation.ts.
+
+Requirements:
+1. Device orientation hook (useDeviceOrientation):
+   - Listen to window DeviceOrientationEvent (gamma/beta angles).
+   - Calculate phone tilt. Provide isLevel: boolean (tolerance within +/- 5 degrees from vertical perpendicular).
+2. Camera capture view:
+   - HTML5 video stream using navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).
+   - Fallback file input (<input type="file" accept="image/*" capture="environment">) for browsers without direct stream support.
+3. Overlay HUD (GuidanceOverlay):
+   - Translucent silhouette outline of cow side-profile to assist framing.
+   - ArUco marker placement indicator box on the ground plane.
+   - Level indicator bubble: turns green when phone is level, red with warning text ("Tilt camera perpendicular to ground") when misaligned.
+   - Distance guidance tip: "Ensure all 4 hooves and full body are inside frame".
+4. Capture action button: disabled if camera not level (with override toggle option).
+5. On capture, pass image blob to review/preview step.
+```
+
+---
+
+## Round 5: Landmarks & Uploads
+
+### PR 13: `feat(geometry): extract anatomical landmarks from segmentation mask`
 **Name:** Lakshya  
 **Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
 **Prompt:**
@@ -149,7 +369,58 @@ Requirements:
 
 ---
 
-### PR 6: `feat(measure): compute physical body measurements and angles`
+### PR 14: `feat(evaluations): implement image upload and draft evaluation creation`
+**Name:** Priyanshu  
+**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
+**Prompt:**
+```text
+Implement multipart image upload handling and evaluation draft creation.
+Target files: api/src/routes/evaluations.ts, api/src/controllers/evaluations.controller.ts, api/src/services/storage.service.ts.
+
+Requirements:
+1. Configure multer storage with disk destination (uploads/evaluations/) and filename sanitization (UUID + timestamp).
+2. Validate incoming files: allowed mime types (image/jpeg, image/png), max file size 10MB.
+3. Endpoint POST /api/evaluations:
+   - Accepts multipart/form-data:
+     - Fields: animal_id (UUID), view_type ('side' default).
+     - File: image (required).
+   - Verify animal exists.
+   - Insert evaluation record with status 'pending_analysis' and link current evaluator (req.user.id).
+   - Insert image record with stored file path and view type.
+   - Return 201 with { evaluation_id, status, image_url }.
+4. Ensure uploaded directory is served or accessible via secure static route.
+5. Unit tests testing upload validation (file size limit, invalid file extension, missing animal_id).
+```
+
+---
+
+### PR 15: `feat(ui): implement image preview and quality check feedback modal`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement image preview, quality validation feedback, and upload progress UI.
+Target files: app/src/pages/ImagePreview.tsx, app/src/components/QualityWarningModal.tsx.
+
+Requirements:
+1. Preview captured image with "Retake" and "Analyze Photo" buttons.
+2. On click "Analyze Photo":
+   - Show progress modal with animated steps: "Checking image quality...", "Contacting Hugging Face AI...", "Calculating scale and landmarks...".
+   - Upload image to POST /api/evaluations and trigger analysis.
+3. If backend returns quality flags (blurry, too_dark, too_bright, marker_missing):
+   - Display QualityWarningModal listing specific issues with plain-language advice:
+     - Blurry: "Hold phone steady or tap to focus."
+     - Too dark: "Move to a well-lit area or face the sunlight."
+     - Marker missing: "Ensure reference marker is placed on ground near animal."
+   - Provide "Retake Photo" (recommended) and "Proceed Anyway" buttons.
+4. If analysis succeeds, navigate directly to /evaluations/:id/adjust.
+```
+
+---
+
+## Round 6: Measurement & Canvas
+
+### PR 16: `feat(measure): compute physical body measurements and angles`
 **Name:** Lakshya  
 **Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
 **Prompt:**
@@ -176,7 +447,64 @@ Requirements:
 
 ---
 
-### PR 7: `feat(scoring): implement config-driven 1-9 trait scoring engine`
+### PR 17: `feat(integration): connect express api to python analysis service`
+**Name:** Priyanshu  
+**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
+**Prompt:**
+```text
+Implement HTTP client to call Python analysis service and persist results.
+Target files: api/src/services/analysis.service.ts, updating api/src/controllers/evaluations.controller.ts.
+
+Requirements:
+1. Create AnalysisClient service using axios or fetch:
+   - Configurable base URL ANALYSIS_SERVICE_URL (default: http://localhost:8000).
+   - Method analyzeSideView(imagePath: string, species: string, breed: string):
+     - Sends multipart request to Python POST /predict.
+     - Timeout handling (15s) with structured error if analysis service is unavailable.
+2. Update evaluation creation flow or add POST /api/evaluations/:id/analyze:
+   - Fetch evaluation and image from DB.
+   - Call analysis service.
+   - If analysis returns quality errors: update evaluation status to 'failed_quality', store flags in image record, return flags to client.
+   - If analysis succeeds:
+     - Save landmarks to landmarks table (estimated_pos, confidence).
+     - Save measurements to measurements table (name, value, unit, confidence).
+     - Save trait scores to trait_scores table (trait_name, ai_score, final_score = ai_score).
+     - Update evaluation overall_score, pipeline_version, and status to 'analyzed'.
+3. Return full evaluation entity to caller.
+4. Add mock testing using nock or axios-mock-adapter.
+```
+
+---
+
+### PR 18: `feat(canvas): implement interactive landmark adjustment canvas`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement an interactive canvas component allowing field typers to inspect and drag anatomical landmarks.
+Target files: app/src/pages/LandmarkAdjustment.tsx, app/src/components/LandmarkCanvas.tsx.
+
+Requirements:
+1. LandmarkCanvas component:
+   - Render captured animal image scaled onto HTML5 <canvas> or SVG viewport with zoom and pan support.
+   - Render landmark points (withers, shoulder_point, hip_point, pin_bone, brisket, front_hoof, rear_hoof) as colored draggable nodes with visible labels.
+   - Connect anatomical points with faint guideline lines (e.g., wither to hoof for height, shoulder to pin for length, hip to pin for rump slope).
+2. Interaction:
+   - Touch/drag support optimized for mobile fingers (hitbox >= 32px radius around points).
+   - On point drag, update coordinates in state in real-time.
+   - "Reset to AI Default" button to restore initial positions.
+3. "Confirm Landmarks" button:
+   - Calls PATCH /api/evaluations/:id/landmarks with updated coordinates.
+   - Shows brief recalculating spinner.
+   - Navigates to /evaluations/:id/review on completion.
+4. Add unit/component tests for touch events and coordinate scaling.
+```
+
+---
+
+## Round 7: Scoring & Review
+
+### PR 19: `feat(scoring): implement config-driven 1-9 trait scoring engine`
 **Name:** Lakshya  
 **Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
 **Prompt:**
@@ -210,232 +538,7 @@ Requirements:
 
 ---
 
-### PR 8: `feat(api): implement /recompute endpoint for manual landmark adjustments`
-**Name:** Lakshya  
-**Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
-**Prompt:**
-```text
-Implement the /recompute FastAPI endpoint to handle user-dragged landmark corrections.
-Target files: src/main.py, src/schemas.py, tests/test_recompute.py.
-
-Requirements:
-1. Define Pydantic request model RecomputeRequest:
-   - landmarks: dict[str, Coordinate] where Coordinate has x: int, y: int.
-   - pixels_per_cm: float.
-   - species: str.
-   - breed: str.
-2. Endpoint POST /recompute:
-   - Validate received landmark coordinates.
-   - Recalculate measurements using src/measurements.py.
-   - Recalculate trait scores and overall score using src/scoring.py.
-   - Mark recalculated traits with attribute "source": "user_adjusted".
-   - Return updated measurements, trait_scores, and overall_score.
-3. Handle missing landmarks or invalid pixels_per_cm with HTTP 422.
-4. Write pytest testing /recompute with sample adjusted points.
-```
-
----
-
-### PR 9: `feat(pipeline): integrate full end-to-end predict pipeline`
-**Name:** Lakshya  
-**Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
-**Prompt:**
-```text
-Wire together all analysis components into an end-to-end inference pipeline in src/pipeline.py and link to POST /predict in src/main.py.
-
-Requirements:
-1. Pipeline flow:
-   - Input: image bytes, species, breed.
-   - Step 1: Run ImageQualityChecker. If unacceptable, return early with 200/400 containing quality_flags.
-   - Step 2: Run detect_reference_marker. If not found, add flag "marker_missing".
-   - Step 3: Run HuggingFaceSegmenter to get animal mask.
-   - Step 4: Run landmark extraction on mask.
-   - Step 5: If marker found, compute measurements in cm; else return pixel values and flag "uncalibrated".
-   - Step 6: Compute linear 1-9 trait scores and overall score.
-   - Step 7: Return consolidated output matching PRD Section 13.
-2. Add execution timing metrics (latency breakdown per step).
-3. Handle timeouts or HF failures gracefully: return structured error message instead of 500 crash.
-4. Integration test running the full pipeline on a sample image fixture.
-```
-
----
-
-### PR 10: `test(pipeline): build automated test suite and validation benchmarks`
-**Name:** Lakshya  
-**Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
-**Prompt:**
-```text
-Build a test harness and validation benchmark script to evaluate measurement accuracy.
-Target files: tests/test_validation_benchmarks.py, data/validation_manifest.json, scripts/run_benchmarks.py.
-
-Requirements:
-1. Create data/validation_manifest.json with metadata schema for test images:
-   - image_path, species, breed, tape_height_cm, tape_length_cm, expert_stature_score.
-2. Implement scripts/run_benchmarks.py:
-   - Run pipeline over validation images in data/.
-   - Compute Mean Absolute Error (MAE) for height_at_withers and body_length against ground truth tape measurements.
-   - Compute score agreement percentage (within 1 score point) against expert scores.
-   - Assert Section 15 metrics: height within 3cm tolerance on test set.
-   - Output summary markdown table of results.
-3. Add CI test command in Makefile or package script to run all unit and validation tests.
-```
-
----
-
-### PR 11: `chore(api): scaffold express typescript backend and env config`
-**Name:** Priyanshu  
-**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
-**Prompt:**
-```text
-Scaffold the Node.js Express backend API with TypeScript.
-Target directory: api/.
-
-Requirements:
-1. Initialize package.json with dependencies: express, cors, dotenv, helmet, morgan, multer, pg, zod, jsonwebtoken, bcryptjs, ts-node, typescript, @types/*.
-2. Setup tsconfig.json and project structure:
-   - api/src/index.ts (entry point)
-   - api/src/app.ts (Express app configuration)
-   - api/src/routes/
-   - api/src/controllers/
-   - api/src/services/
-   - api/src/middlewares/
-   - api/src/config/
-3. Configure environment variables via api/.env.example: PORT, DATABASE_URL, JWT_SECRET, ANALYSIS_SERVICE_URL, BPA_MOCK_URL.
-4. Add health check endpoint GET /api/health returning status, uptime, and database connection state.
-5. Setup npm scripts: dev, build, start, lint, test.
-```
-
----
-
-### PR 12: `feat(db): setup postgres docker-compose and knex/prisma migrations`
-**Name:** Priyanshu  
-**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
-**Prompt:**
-```text
-Setup PostgreSQL database with Docker Compose and initial database migration schema based on PRD Section 12.
-Target files: docker-compose.yml, api/prisma/schema.prisma (or Knex migrations in api/src/db/migrations/).
-
-Requirements:
-1. Create docker-compose.yml with:
-   - postgres:15 service with healthcheck, persistent volume, and exposed port 5432.
-2. Implement relational schema covering:
-   - users (id, name, email, password_hash, role ['typer', 'supervisor', 'admin'], created_at)
-   - animals (id, tag_id UNIQUE, species, breed, owner_name, village, created_at)
-   - evaluations (id, animal_id, evaluator_id, status ['draft', 'analyzed', 'confirmed', 'synced'], overall_score, pipeline_version, created_at, updated_at)
-   - images (id, evaluation_id, view_type ['side', 'rear', 'front'], file_path, quality_flags JSONB)
-   - landmarks (id, evaluation_id, name, estimated_pos JSONB, corrected_pos JSONB, confidence FLOAT)
-   - measurements (id, evaluation_id, name, value FLOAT, unit, confidence FLOAT)
-   - trait_scores (id, evaluation_id, trait_name, ai_score INT, final_score INT, override_reason TEXT)
-   - bpa_sync (id, evaluation_id, status ['pending', 'synced', 'failed'], attempts INT, last_error TEXT, synced_at TIMESTAMP)
-3. Add seed script (api/prisma/seed.ts or db/seed.js) creating default admin and field typer accounts.
-```
-
----
-
-### PR 13: `feat(auth): implement jwt auth and role-based access control`
-**Name:** Priyanshu  
-**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
-**Prompt:**
-```text
-Implement authentication and role-based access control middleware in the Express API.
-Target files: api/src/routes/auth.ts, api/src/controllers/auth.controller.ts, api/src/middlewares/auth.middleware.ts.
-
-Requirements:
-1. Endpoint POST /api/auth/login:
-   - Validate email/password using Zod schema.
-   - Verify hashed password with bcrypt.
-   - Generate JWT containing { userId, role, name }.
-   - Return { token, user: { id, name, role, email } }.
-2. Middleware authenticateToken:
-   - Parse Bearer token from Authorization header.
-   - Verify token signature, attach user to request object req.user.
-3. Middleware authorizeRoles(...allowedRoles: string[]):
-   - Check if req.user.role is authorized, otherwise return 403 Forbidden.
-4. Add route GET /api/auth/me to return current session user profile.
-5. Unit tests covering login success, invalid password, expired token, and forbidden role access.
-```
-
----
-
-### PR 14: `feat(animals): implement animal registration and tag lookup api`
-**Name:** Priyanshu  
-**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
-**Prompt:**
-```text
-Implement animal registry CRUD endpoints for field typers.
-Target files: api/src/routes/animals.ts, api/src/controllers/animals.controller.ts, api/src/services/animals.service.ts.
-
-Requirements:
-1. Endpoint POST /api/animals:
-   - Validate body: tag_id (unique string), species ('cattle' | 'buffalo'), breed (string), owner_name (string), village (string).
-   - If tag_id already exists, return 409 Conflict.
-   - Save to database and return created animal record.
-2. Endpoint GET /api/animals:
-   - Query param ?tag= to search by tag ID prefix or exact match.
-   - Return animal details along with count of previous evaluations.
-3. Endpoint GET /api/animals/:id:
-   - Return animal profile and past evaluation history summary.
-4. Input validation using Zod. Protected with authenticateToken.
-5. Unit tests testing tag search, creation, and duplicate tag prevention.
-```
-
----
-
-### PR 15: `feat(evaluations): implement image upload and draft evaluation creation`
-**Name:** Priyanshu  
-**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
-**Prompt:**
-```text
-Implement multipart image upload handling and evaluation draft creation.
-Target files: api/src/routes/evaluations.ts, api/src/controllers/evaluations.controller.ts, api/src/services/storage.service.ts.
-
-Requirements:
-1. Configure multer storage with disk destination (uploads/evaluations/) and filename sanitization (UUID + timestamp).
-2. Validate incoming files: allowed mime types (image/jpeg, image/png), max file size 10MB.
-3. Endpoint POST /api/evaluations:
-   - Accepts multipart/form-data:
-     - Fields: animal_id (UUID), view_type ('side' default).
-     - File: image (required).
-   - Verify animal exists.
-   - Insert evaluation record with status 'pending_analysis' and link current evaluator (req.user.id).
-   - Insert image record with stored file path and view type.
-   - Return 201 with { evaluation_id, status, image_url }.
-4. Ensure uploaded directory is served or accessible via secure static route.
-5. Unit tests testing upload validation (file size limit, invalid file extension, missing animal_id).
-```
-
----
-
-### PR 16: `feat(integration): connect express api to python analysis service`
-**Name:** Priyanshu  
-**Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
-**Prompt:**
-```text
-Implement HTTP client to call Python analysis service and persist results.
-Target files: api/src/services/analysis.service.ts, updating api/src/controllers/evaluations.controller.ts.
-
-Requirements:
-1. Create AnalysisClient service using axios or fetch:
-   - Configurable base URL ANALYSIS_SERVICE_URL (default: http://localhost:8000).
-   - Method analyzeSideView(imagePath: string, species: string, breed: string):
-     - Sends multipart request to Python POST /predict.
-     - Timeout handling (15s) with structured error if analysis service is unavailable.
-2. Update evaluation creation flow or add POST /api/evaluations/:id/analyze:
-   - Fetch evaluation and image from DB.
-   - Call analysis service.
-   - If analysis returns quality errors: update evaluation status to 'failed_quality', store flags in image record, return flags to client.
-   - If analysis succeeds:
-     - Save landmarks to landmarks table (estimated_pos, confidence).
-     - Save measurements to measurements table (name, value, unit, confidence).
-     - Save trait scores to trait_scores table (trait_name, ai_score, final_score = ai_score).
-     - Update evaluation overall_score, pipeline_version, and status to 'analyzed'.
-3. Return full evaluation entity to caller.
-4. Add mock testing using nock or axios-mock-adapter.
-```
-
----
-
-### PR 17: `feat(evaluations): implement evaluation listing, details, and filtering api`
+### PR 20: `feat(evaluations): implement evaluation listing, details, and filtering api`
 **Name:** Priyanshu  
 **Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
 **Prompt:**
@@ -463,7 +566,60 @@ Requirements:
 
 ---
 
-### PR 18: `feat(evaluations): implement landmark patch and score override audit api`
+### PR 21: `feat(ui): implement evaluation results review and score override screen`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement the evaluation results review screen displaying measurements, scores, and manual override dialog.
+Target files: app/src/pages/EvaluationReview.tsx, app/src/components/ScoreOverrideModal.tsx.
+
+Requirements:
+1. Results display:
+   - Top card: Animal Tag ID, Breed, Overall Score (large badge, 1-100), Status.
+   - Body measurements section: Height at withers (cm), Body length (cm), Body depth (cm), Rump angle (degrees).
+   - Trait scores section (1-9 linear scale): Stature, Body Length, Body Depth, Rump Angle with horizontal visual gauge bars.
+2. Score override:
+   - Each trait score has an "Edit" / "Override" button.
+   - Opens ScoreOverrideModal: slider or number picker (1 to 9), required text field for "Reason for Override" (e.g., "Animal stood on slope", "Shadow obscured brisket").
+   - Dispatches PATCH /api/evaluations/:id/scores.
+   - Shows badge "Modified" next to overridden scores.
+3. Primary action footer:
+   - "Save & Push to BPA" button.
+   - "Save as Draft" button.
+```
+
+---
+
+## Round 8: Adjustments & History
+
+### PR 22: `feat(api): implement /recompute endpoint for manual landmark adjustments`
+**Name:** Lakshya  
+**Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
+**Prompt:**
+```text
+Implement the /recompute FastAPI endpoint to handle user-dragged landmark corrections.
+Target files: src/main.py, src/schemas.py, tests/test_recompute.py.
+
+Requirements:
+1. Define Pydantic request model RecomputeRequest:
+   - landmarks: dict[str, Coordinate] where Coordinate has x: int, y: int.
+   - pixels_per_cm: float.
+   - species: str.
+   - breed: str.
+2. Endpoint POST /recompute:
+   - Validate received landmark coordinates.
+   - Recalculate measurements using src/measurements.py.
+   - Recalculate trait scores and overall score using src/scoring.py.
+   - Mark recalculated traits with attribute "source": "user_adjusted".
+   - Return updated measurements, trait_scores, and overall_score.
+3. Handle missing landmarks or invalid pixels_per_cm with HTTP 422.
+4. Write pytest testing /recompute with sample adjusted points.
+```
+
+---
+
+### PR 23: `feat(evaluations): implement landmark patch and score override audit api`
 **Name:** Priyanshu  
 **Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
 **Prompt:**
@@ -491,7 +647,56 @@ Requirements:
 
 ---
 
-### PR 19: `feat(export): implement csv and json evaluation export endpoints`
+### PR 24: `feat(ui): implement past evaluations history, search, and filters`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement the evaluations history list with search, filtering, and detail navigation.
+Target files: app/src/pages/EvaluationHistory.tsx, app/src/components/EvaluationCard.tsx, app/src/components/FilterDrawer.tsx.
+
+Requirements:
+1. Screen layout:
+   - Search bar: filter by Tag ID or village.
+   - Filter chips: All, Cattle, Buffalo, Synced, Pending Sync.
+   - FilterDrawer modal: filter by date range, breed, and score range.
+2. EvaluationCard component:
+   - Animal thumbnail, Tag ID, Species/Breed, Date, Overall Score badge.
+   - BPA Sync status badge: Green "Synced", Orange "Pending", Red "Sync Failed".
+   - Tap card opens full evaluation summary.
+3. Pagination / infinite scroll fetching from GET /api/evaluations.
+4. Empty state with clear message and "Start New Evaluation" button.
+```
+
+---
+
+## Round 9: End-to-End & Exports
+
+### PR 25: `feat(pipeline): integrate full end-to-end predict pipeline`
+**Name:** Lakshya  
+**Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
+**Prompt:**
+```text
+Wire together all analysis components into an end-to-end inference pipeline in src/pipeline.py and link to POST /predict in src/main.py.
+
+Requirements:
+1. Pipeline flow:
+   - Input: image bytes, species, breed.
+   - Step 1: Run ImageQualityChecker. If unacceptable, return early with 200/400 containing quality_flags.
+   - Step 2: Run detect_reference_marker. If not found, add flag "marker_missing".
+   - Step 3: Run HuggingFaceSegmenter to get animal mask.
+   - Step 4: Run landmark extraction on mask.
+   - Step 5: If marker found, compute measurements in cm; else return pixel values and flag "uncalibrated".
+   - Step 6: Compute linear 1-9 trait scores and overall score.
+   - Step 7: Return consolidated output matching PRD Section 13.
+2. Add execution timing metrics (latency breakdown per step).
+3. Handle timeouts or HF failures gracefully: return structured error message instead of 500 crash.
+4. Integration test running the full pipeline on a sample image fixture.
+```
+
+---
+
+### PR 26: `feat(export): implement csv and json evaluation export endpoints`
 **Name:** Priyanshu  
 **Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
 **Prompt:**
@@ -519,7 +724,54 @@ Requirements:
 
 ---
 
-### PR 20: `feat(bpa): implement bpa mapping adapter, mock server, and sync retry`
+### PR 27: `feat(ui): implement export triggers and bpa sync status widget`
+**Name:** Manoj  
+**Area:** Frontend React PWA & Interactive UI (`app/`)  
+**Prompt:**
+```text
+Implement BPA synchronization controls and data export UI.
+Target files: app/src/components/BpaSyncWidget.tsx, app/src/components/ExportModal.tsx, app/src/pages/EvaluationDetail.tsx.
+
+Requirements:
+1. BpaSyncWidget component:
+   - Displays real-time sync status: "Synced with BPA (Ref: BPA-1234)", "Sync Pending", or "Sync Error: Connection Timeout".
+   - "Retry Sync" button triggering POST /api/evaluations/:id/sync-bpa.
+   - Shows animated spinner while syncing and toast notification on success/failure.
+2. ExportModal component (for supervisors):
+   - Triggered from history or header menu.
+   - Radio selector: "CSV Spreadsheet" or "JSON Records".
+   - Date range selector.
+   - "Download Export" button triggering download from GET /api/evaluations/export?format=...
+3. Add toast feedback notification system for download completions.
+```
+
+---
+
+## Round 10: Delivery & Offline
+
+### PR 28: `test(pipeline): build automated test suite and validation benchmarks`
+**Name:** Lakshya  
+**Area:** Computer Vision & Analysis Pipeline (`src/`, `configs/`, `tests/`)  
+**Prompt:**
+```text
+Build a test harness and validation benchmark script to evaluate measurement accuracy.
+Target files: tests/test_validation_benchmarks.py, data/validation_manifest.json, scripts/run_benchmarks.py.
+
+Requirements:
+1. Create data/validation_manifest.json with metadata schema for test images:
+   - image_path, species, breed, tape_height_cm, tape_length_cm, expert_stature_score.
+2. Implement scripts/run_benchmarks.py:
+   - Run pipeline over validation images in data/.
+   - Compute Mean Absolute Error (MAE) for height_at_withers and body_length against ground truth tape measurements.
+   - Compute score agreement percentage (within 1 score point) against expert scores.
+   - Assert Section 15 metrics: height within 3cm tolerance on test set.
+   - Output summary markdown table of results.
+3. Add CI test command in Makefile or package script to run all unit and validation tests.
+```
+
+---
+
+### PR 29: `feat(bpa): implement bpa mapping adapter, mock server, and sync retry`
 **Name:** Priyanshu  
 **Area:** Backend API, PostgreSQL DB & BPA Integration (`api/`, `docker-compose.yml`)  
 **Prompt:**
@@ -548,229 +800,6 @@ Requirements:
    - If failure: update bpa_sync status = 'failed', save last_error message.
 4. Return current sync state to client.
 5. Unit tests testing successful sync, payload mapping validation, and retry state progression.
-```
-
----
-
-### PR 21: `chore(app): scaffold react vite pwa with tailwind css and router`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Scaffold the frontend mobile-first PWA for Auto-ATC.
-Target directory: app/.
-
-Requirements:
-1. Initialize Vite React project with TypeScript:
-   - Install tailwindcss, postcss, autoprefixer, react-router-dom, lucide-react, vite-plugin-pwa, axios.
-2. Configure Tailwind CSS with mobile-first sunlight-readable theme (high contrast, clear typography, large touch targets min 48px).
-3. Setup vite-plugin-pwa in vite.config.ts with manifest:
-   - name: "Auto-ATC"
-   - short_name: "AutoATC"
-   - theme_color: "#16a34a"
-   - icons for 192x192 and 512x512.
-4. Setup React Router in app/src/App.tsx with route layout and placeholders:
-   - /login
-   - /dashboard
-   - /animals/new
-   - /evaluations/capture
-   - /evaluations/:id/adjust
-   - /evaluations/:id/review
-   - /evaluations
-5. Create mobile navigation shell with bottom navigation bar (Home, New Scan, History, Profile).
-```
-
----
-
-### PR 22: `feat(ui): implement login screen and auth session state`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement authentication UI and session management in the React app.
-Target files: app/src/pages/Login.tsx, app/src/context/AuthContext.tsx, app/src/services/api.ts.
-
-Requirements:
-1. Create AuthContext providing: user, token, login(email, password), logout(), isAuthenticated, role.
-2. Configure Axios instance in app/src/services/api.ts with request interceptor attaching Bearer token from localStorage.
-3. Build Login page:
-   - Clean, outdoor-friendly UI with high contrast input fields for Email and Password.
-   - "Remember Me" toggle and role indicator.
-   - Clear error alert for invalid credentials.
-   - Loading spinner state during API request.
-   - Redirect to /dashboard upon successful login.
-4. Add ProtectedRoute component checking authentication and redirecting unauthorized users to /login.
-5. Add unit tests for AuthContext and Login form submission.
-```
-
----
-
-### PR 23: `feat(ui): implement animal tag lookup and registration form`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement animal identification and selection workflow before image capture.
-Target files: app/src/pages/AnimalLookup.tsx, app/src/components/AnimalFormModal.tsx.
-
-Requirements:
-1. Tag lookup screen:
-   - Large numeric/alphanumeric search bar for Animal Tag ID.
-   - Debounced search query against backend GET /api/animals?tag=.
-   - If animal found: display card with Tag ID, Species, Breed, Village, Owner, and "Start Evaluation" button navigating to /evaluations/capture?animalId=...
-   - If not found: show empty state with "Register New Animal" action.
-2. Registration modal/form:
-   - Fields: Tag ID (required), Species (Dropdown: "Cattle" | "Buffalo"), Breed (Dropdown dependent on species: Gir, Sahiwal, Murrah, Other), Owner Name, Village.
-   - Form validation with error messages.
-   - On submit, call POST /api/animals, select the newly created animal, and transition to capture.
-3. Sunlight-friendly UI styling with large clickable cards.
-```
-
----
-
-### PR 24: `feat(camera): implement camera capture with alignment overlay and level sensor`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement the camera capture interface with live guidance overlay and device orientation level check.
-Target files: app/src/pages/CaptureScreen.tsx, app/src/components/GuidanceOverlay.tsx, app/src/hooks/useDeviceOrientation.ts.
-
-Requirements:
-1. Device orientation hook (useDeviceOrientation):
-   - Listen to window DeviceOrientationEvent (gamma/beta angles).
-   - Calculate phone tilt. Provide isLevel: boolean (tolerance within +/- 5 degrees from vertical perpendicular).
-2. Camera capture view:
-   - HTML5 video stream using navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).
-   - Fallback file input (<input type="file" accept="image/*" capture="environment">) for browsers without direct stream support.
-3. Overlay HUD (GuidanceOverlay):
-   - Translucent silhouette outline of cow side-profile to assist framing.
-   - ArUco marker placement indicator box on the ground plane.
-   - Level indicator bubble: turns green when phone is level, red with warning text ("Tilt camera perpendicular to ground") when misaligned.
-   - Distance guidance tip: "Ensure all 4 hooves and full body are inside frame".
-4. Capture action button: disabled if camera not level (with override toggle option).
-5. On capture, pass image blob to review/preview step.
-```
-
----
-
-### PR 25: `feat(ui): implement image preview and quality check feedback modal`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement image preview, quality validation feedback, and upload progress UI.
-Target files: app/src/pages/ImagePreview.tsx, app/src/components/QualityWarningModal.tsx.
-
-Requirements:
-1. Preview captured image with "Retake" and "Analyze Photo" buttons.
-2. On click "Analyze Photo":
-   - Show progress modal with animated steps: "Checking image quality...", "Contacting Hugging Face AI...", "Calculating scale and landmarks...".
-   - Upload image to POST /api/evaluations and trigger analysis.
-3. If backend returns quality flags (blurry, too_dark, too_bright, marker_missing):
-   - Display QualityWarningModal listing specific issues with plain-language advice:
-     - Blurry: "Hold phone steady or tap to focus."
-     - Too dark: "Move to a well-lit area or face the sunlight."
-     - Marker missing: "Ensure reference marker is placed on ground near animal."
-   - Provide "Retake Photo" (recommended) and "Proceed Anyway" buttons.
-4. If analysis succeeds, navigate directly to /evaluations/:id/adjust.
-```
-
----
-
-### PR 26: `feat(canvas): implement interactive landmark adjustment canvas`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement an interactive canvas component allowing field typers to inspect and drag anatomical landmarks.
-Target files: app/src/pages/LandmarkAdjustment.tsx, app/src/components/LandmarkCanvas.tsx.
-
-Requirements:
-1. LandmarkCanvas component:
-   - Render captured animal image scaled onto HTML5 <canvas> or SVG viewport with zoom and pan support.
-   - Render landmark points (withers, shoulder_point, hip_point, pin_bone, brisket, front_hoof, rear_hoof) as colored draggable nodes with visible labels.
-   - Connect anatomical points with faint guideline lines (e.g., wither to hoof for height, shoulder to pin for length, hip to pin for rump slope).
-2. Interaction:
-   - Touch/drag support optimized for mobile fingers (hitbox >= 32px radius around points).
-   - On point drag, update coordinates in state in real-time.
-   - "Reset to AI Default" button to restore initial positions.
-3. "Confirm Landmarks" button:
-   - Calls PATCH /api/evaluations/:id/landmarks with updated coordinates.
-   - Shows brief recalculating spinner.
-   - Navigates to /evaluations/:id/review on completion.
-4. Add unit/component tests for touch events and coordinate scaling.
-```
-
----
-
-### PR 27: `feat(ui): implement evaluation results review and score override screen`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement the evaluation results review screen displaying measurements, scores, and manual override dialog.
-Target files: app/src/pages/EvaluationReview.tsx, app/src/components/ScoreOverrideModal.tsx.
-
-Requirements:
-1. Results display:
-   - Top card: Animal Tag ID, Breed, Overall Score (large badge, 1-100), Status.
-   - Body measurements section: Height at withers (cm), Body length (cm), Body depth (cm), Rump angle (degrees).
-   - Trait scores section (1-9 linear scale): Stature, Body Length, Body Depth, Rump Angle with horizontal visual gauge bars.
-2. Score override:
-   - Each trait score has an "Edit" / "Override" button.
-   - Opens ScoreOverrideModal: slider or number picker (1 to 9), required text field for "Reason for Override" (e.g., "Animal stood on slope", "Shadow obscured brisket").
-   - Dispatches PATCH /api/evaluations/:id/scores.
-   - Shows badge "Modified" next to overridden scores.
-3. Primary action footer:
-   - "Save & Push to BPA" button.
-   - "Save as Draft" button.
-```
-
----
-
-### PR 28: `feat(ui): implement past evaluations history, search, and filters`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement the evaluations history list with search, filtering, and detail navigation.
-Target files: app/src/pages/EvaluationHistory.tsx, app/src/components/EvaluationCard.tsx, app/src/components/FilterDrawer.tsx.
-
-Requirements:
-1. Screen layout:
-   - Search bar: filter by Tag ID or village.
-   - Filter chips: All, Cattle, Buffalo, Synced, Pending Sync.
-   - FilterDrawer modal: filter by date range, breed, and score range.
-2. EvaluationCard component:
-   - Animal thumbnail, Tag ID, Species/Breed, Date, Overall Score badge.
-   - BPA Sync status badge: Green "Synced", Orange "Pending", Red "Sync Failed".
-   - Tap card opens full evaluation summary.
-3. Pagination / infinite scroll fetching from GET /api/evaluations.
-4. Empty state with clear message and "Start New Evaluation" button.
-```
-
----
-
-### PR 29: `feat(ui): implement export triggers and bpa sync status widget`
-**Name:** Manoj  
-**Area:** Frontend React PWA & Interactive UI (`app/`)  
-**Prompt:**
-```text
-Implement BPA synchronization controls and data export UI.
-Target files: app/src/components/BpaSyncWidget.tsx, app/src/components/ExportModal.tsx, app/src/pages/EvaluationDetail.tsx.
-
-Requirements:
-1. BpaSyncWidget component:
-   - Displays real-time sync status: "Synced with BPA (Ref: BPA-1234)", "Sync Pending", or "Sync Error: Connection Timeout".
-   - "Retry Sync" button triggering POST /api/evaluations/:id/sync-bpa.
-   - Shows animated spinner while syncing and toast notification on success/failure.
-2. ExportModal component (for supervisors):
-   - Triggered from history or header menu.
-   - Radio selector: "CSV Spreadsheet" or "JSON Records".
-   - Date range selector.
-   - "Download Export" button triggering download from GET /api/evaluations/export?format=...
-3. Add toast feedback notification system for download completions.
 ```
 
 ---
@@ -804,8 +833,4 @@ Requirements:
 - **Branch naming:** `feat/<member>-<task-desc>`, e.g. `feat/lakshya-cv-marker-scale`
 - **Commits:** Conventional Commits (`feat: ...`, `fix: ...`, `test: ...`, `chore: ...`)
 - **Review policy:** 1 approval required before merge to `main`.
-- **Merge sequence:**
-  1. **PR 1, PR 11, PR 21** (Scaffolding across services).
-  2. **PR 12** (PostgreSQL schema), **PR 2–PR 5** (Core CV & HF modules), **PR 22–PR 24** (Auth UI & Camera capture).
-  3. **PR 6–PR 9** (Measurement & Pipeline), **PR 15–PR 18** (API wiring & recompute), **PR 25–PR 27** (Canvas adjustment & review UI).
-  4. **PR 19–PR 20** (BPA sync & exports), **PR 28–PR 30** (History, offline PWA), **PR 10** (Validation benchmarks).
+- **Merge order:** Sequential round-robin from **PR 1 through PR 30**.
