@@ -293,8 +293,6 @@ We do not yet have BPA API documentation or sandbox access.
 | **Priyanshu** | Backend Engineer | Node.js / Express API, PostgreSQL database, authentication, evaluation records, and BPA mock adapter (`api/`) |
 | **Manoj** | Frontend Engineer | Mobile-first React PWA, camera capture with level indicator, interactive landmark drag canvas, review UI (`app/`) |
 
-> Full 30-PR sprint task breakdown and prompts available in [PROMPTS.md](PROMPTS.md).
-
 ---
 
 ## 🤝 Contributing

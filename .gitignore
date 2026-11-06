@@ -55,6 +55,9 @@ app/dist/
 *.swp
 *.swo
 
+# Prompts roadmap (local only)
+PROMPTS.md
+
 # Large files & local uploads
 data/raw/*
 !data/raw/.gitkeep
