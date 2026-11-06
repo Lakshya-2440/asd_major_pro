@@ -1,0 +1,16 @@
+# Image quality validation thresholds configuration
+
+blur:
+  threshold: 100.0  # Variance of Laplacian score threshold (< 100.0 is blurry)
+
+lighting:
+  min_brightness: 40.0  # Mean luminance threshold (< 40.0 is too dark)
+  max_brightness: 220.0  # Mean luminance threshold (> 220.0 is too bright)
+  saturation_threshold: 250  # Pixel intensity threshold for saturation (> 250)
+  max_saturation_ratio: 0.15  # Saturated pixels ratio threshold (> 15% is too bright)
+
+resolution:
+  min_width: 800  # Minimum image width in pixels
+  min_height: 600  # Minimum image height in pixels
+  require_landscape: true  # Landscape orientation requirement (width > height)
+
