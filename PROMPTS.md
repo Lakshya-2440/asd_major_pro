@@ -830,7 +830,6 @@ Requirements:
 
 ## Workflow Rules for Team
 
-- **Branch naming:** `feat/<member>-<task-desc>`, e.g. `feat/lakshya-cv-marker-scale`
-- **Commits:** Conventional Commits (`feat: ...`, `fix: ...`, `test: ...`, `chore: ...`)
-- **Review policy:** 1 approval required before merge to `main`.
-- **Merge order:** Sequential round-robin from **PR 1 through PR 30**.
+- **Branching:** Work directly on `main` branch only. No separate feature branches.
+- **Commits:** Conventional Commits referencing task number (`feat(service): PR 1 - ...`, `chore(api): PR 2 - ...`).
+- **Commit sequence:** Sequential round-robin from **PR 1 through PR 30** directly on `main`.
