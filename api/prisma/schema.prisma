@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  typer
+  supervisor
+  admin
+}
+
+enum Species {
+  cattle
+  buffalo
+}
+
+enum EvaluationStatus {
+  draft
+  pending_analysis
+  analyzed
+  failed_quality
+  confirmed
+  synced
+}
+
+enum ViewType {
+  side
+  rear
+  front
+}
+
+enum BpaSyncStatus {
+  pending
+  synced
+  failed
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  name         String
+  email        String       @unique
+  passwordHash String       @map("password_hash")
+  role         UserRole     @default(typer)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  evaluations  Evaluation[]
+
+  @@map("users")
+}
+
+model Animal {
+  id           String       @id @default(uuid()) @db.Uuid
+  tagId        String       @unique @map("tag_id")
+  species      Species
+  breed        String
+  ownerName    String?      @map("owner_name")
+  village      String?
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  evaluations  Evaluation[]
+
+  @@index([tagId])
+  @@map("animals")
+}
+
+model Evaluation {
+  id             String           @id @default(uuid()) @db.Uuid
+  animalId       String           @map("animal_id") @db.Uuid
+  evaluatorId    String           @map("evaluator_id") @db.Uuid
+  status         EvaluationStatus @default(draft)
+  overallScore   Float?           @map("overall_score")
+  pipelineVersion String?         @map("pipeline_version")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  animal         Animal           @relation(fields: [animalId], references: [id], onDelete: Restrict)
+  evaluator      User             @relation(fields: [evaluatorId], references: [id], onDelete: Restrict)
+  images         Image[]
+  landmarks      Landmark[]
+  measurements   Measurement[]
+  traitScores    TraitScore[]
+  bpaSync        BpaSync[]
+
+  @@index([animalId])
+  @@index([evaluatorId])
+  @@index([status, createdAt])
+  @@map("evaluations")
+}
+
+model Image {
+  id            String     @id @default(uuid()) @db.Uuid
+  evaluationId  String     @map("evaluation_id") @db.Uuid
+  viewType      ViewType   @default(side) @map("view_type")
+  filePath      String     @map("file_path")
+  qualityFlags  Json       @default("[]") @map("quality_flags")
+  evaluation    Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId])
+  @@map("images")
+}
+
+model Landmark {
+  id            String     @id @default(uuid()) @db.Uuid
+  evaluationId  String     @map("evaluation_id") @db.Uuid
+  name          String
+  estimatedPos  Json       @map("estimated_pos")
+  correctedPos  Json?      @map("corrected_pos")
+  confidence    Float?
+  evaluation    Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, name])
+  @@map("landmarks")
+}
+
+model Measurement {
+  id            String     @id @default(uuid()) @db.Uuid
+  evaluationId  String     @map("evaluation_id") @db.Uuid
+  name          String
+  value         Float
+  unit          String
+  confidence    Float?
+  evaluation    Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, name])
+  @@map("measurements")
+}
+
+model TraitScore {
+  id            String     @id @default(uuid()) @db.Uuid
+  evaluationId  String     @map("evaluation_id") @db.Uuid
+  traitName     String     @map("trait_name")
+  aiScore       Int        @map("ai_score")
+  finalScore    Int        @map("final_score")
+  overrideReason String?   @map("override_reason") @db.Text
+  evaluation    Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, traitName])
+  @@map("trait_scores")
+}
+
+model BpaSync {
+  id            String        @id @default(uuid()) @db.Uuid
+  evaluationId  String        @map("evaluation_id") @db.Uuid
+  status        BpaSyncStatus @default(pending)
+  attempts      Int           @default(0)
+  lastError     String?       @map("last_error") @db.Text
+  syncedAt      DateTime?     @map("synced_at") @db.Timestamptz(6)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  evaluation    Evaluation    @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId, createdAt])
+  @@map("bpa_sync")
+}
