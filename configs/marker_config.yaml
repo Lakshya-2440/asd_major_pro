@@ -1,0 +1,7 @@
+# ArUco reference marker detection configuration
+
+dictionary: "DICT_4X4_50"  # Supported: DICT_4X4_50, DICT_5X5_100, etc.
+marker_real_size_cm: 10.0  # Physical edge length of reference marker in cm
+min_area_ratio: 0.0005     # Marker area threshold relative to frame (< 0.05% rejected)
+primary_id: null           # Preferred primary marker ID (null picks lowest ID)
+
