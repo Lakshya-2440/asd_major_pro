@@ -6,6 +6,7 @@ import { env } from './config/env';
 import animalsRouter from './routes/animals';
 import authRouter from './routes/auth';
 import evaluationsRouter from './routes/evaluations';
+import exportRouter from './routes/export';
 import healthRouter from './routes/health';
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(morgan('dev'));
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/animals', animalsRouter);
+app.use('/api/evaluations/export', exportRouter);
 app.use('/api/evaluations', evaluationsRouter);
 
 export default app;
