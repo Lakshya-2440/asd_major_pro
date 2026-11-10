@@ -164,6 +164,7 @@ model BpaSync {
   status        BpaSyncStatus @default(pending)
   attempts      Int           @default(0)
   lastError     String?       @map("last_error") @db.Text
+  bpaReferenceId String?      @map("bpa_reference_id")
   syncedAt      DateTime?     @map("synced_at") @db.Timestamptz(6)
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   evaluation    Evaluation    @relation(fields: [evaluationId], references: [id], onDelete: Cascade)

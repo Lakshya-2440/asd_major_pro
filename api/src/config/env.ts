@@ -8,7 +8,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
   JWT_SECRET: z.string().default('development-only-change-me'),
   ANALYSIS_SERVICE_URL: z.string().url().default('http://localhost:8000'),
-  BPA_MOCK_URL: z.string().url().default('http://localhost:3000/mock/bpa'),
+  BPA_MOCK_URL: z.string().url().default('http://localhost:3000/mock/bpa/atc-records'),
   FRONTEND_ORIGIN: z.string().url().default('http://localhost:5173'),
 });
 

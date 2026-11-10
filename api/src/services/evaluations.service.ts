@@ -172,7 +172,7 @@ export async function getEvaluationDetail(
                    'ai_score', t.ai_score, 'final_score', t.final_score, 'override_reason', t.override_reason))
                    FROM trait_scores t WHERE t.evaluation_id = e.id), '[]'::jsonb) AS trait_scores,
             COALESCE((SELECT jsonb_agg(jsonb_build_object('id', b.id, 'status', b.status, 'attempts', b.attempts,
-                   'last_error', b.last_error, 'synced_at', b.synced_at)
+                   'bpa_reference_id', b.bpa_reference_id, 'last_error', b.last_error, 'synced_at', b.synced_at)
                    ORDER BY b.created_at DESC) FROM bpa_sync b WHERE b.evaluation_id = e.id), '[]'::jsonb) AS bpa_sync,
             COALESCE((SELECT jsonb_agg(jsonb_build_object('id', audit.id, 'trait_name', audit.trait_name,
                    'previous_score', audit.previous_score, 'final_score', audit.final_score,
@@ -455,7 +455,8 @@ async function loadEvaluationAggregate(client: PoolClient, evaluationId: string)
                    'ai_score', t.ai_score, 'final_score', t.final_score, 'override_reason', t.override_reason))
                    FROM trait_scores t WHERE t.evaluation_id = e.id), '[]'::jsonb) AS trait_scores,
             COALESCE((SELECT jsonb_agg(jsonb_build_object('id', b.id, 'status', b.status, 'attempts', b.attempts,
-                   'last_error', b.last_error, 'synced_at', b.synced_at)) FROM bpa_sync b WHERE b.evaluation_id = e.id), '[]'::jsonb) AS bpa_sync,
+                   'bpa_reference_id', b.bpa_reference_id, 'last_error', b.last_error, 'synced_at', b.synced_at))
+                   FROM bpa_sync b WHERE b.evaluation_id = e.id), '[]'::jsonb) AS bpa_sync,
             COALESCE((SELECT jsonb_agg(jsonb_build_object('id', audit.id, 'trait_name', audit.trait_name,
                    'previous_score', audit.previous_score, 'final_score', audit.final_score,
                    'override_reason', audit.override_reason, 'changed_by', audit.changed_by,
