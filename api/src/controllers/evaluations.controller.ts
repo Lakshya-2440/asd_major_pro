@@ -2,13 +2,87 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { pool } from '../config/database';
 import { analysisClient, AnalysisServiceError } from '../services/analysis.service';
-import { AnimalNotFoundError, createDraftEvaluation, DatabaseUnavailableError, findEvaluationImage, getEvaluationForAnalysis, persistAnalysisResult } from '../services/evaluations.service';
+import {
+  AnimalNotFoundError,
+  createDraftEvaluation,
+  DatabaseUnavailableError,
+  evaluationStatuses,
+  findEvaluationImage,
+  getEvaluationDetail,
+  getEvaluationForAnalysis,
+  listEvaluations as listEvaluationRecords,
+  persistAnalysisResult,
+} from '../services/evaluations.service';
 import { removeUploadedFile, resolveStoredImage } from '../services/storage.service';
 
 export const evaluationDraftSchema = z.object({
   animal_id: z.string().uuid(),
   view_type: z.enum(['side', 'rear', 'front']).default('side'),
 }).strict();
+
+export const evaluationListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  species: z.enum(['cattle', 'buffalo']).optional(),
+  breed: z.string().trim().min(1).max(100).optional(),
+  status: z.enum(evaluationStatuses).optional(),
+  village: z.string().trim().min(1).max(200).optional(),
+  evaluator_id: z.string().uuid().optional(),
+  from_date: z.string().optional().refine(isValidDate, 'Expected a valid YYYY-MM-DD date'),
+  to_date: z.string().optional().refine(isValidDate, 'Expected a valid YYYY-MM-DD date'),
+}).strict().refine(
+  (filters) => !filters.from_date || !filters.to_date || filters.from_date <= filters.to_date,
+  { message: 'from_date must be on or before to_date', path: ['to_date'] },
+);
+
+export async function listEvaluations(req: Request, res: Response): Promise<void> {
+  const parsed = evaluationListQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid evaluation filters', details: parsed.error.flatten().fieldErrors });
+    return;
+  }
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  try {
+    const result = await listEvaluationRecords(getQueryDatabase(), parsed.data, {
+      userId: req.user.userId,
+      role: req.user.role,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error('Evaluation listing failed', error);
+    res.status(503).json({ error: 'Unable to list evaluations' });
+  }
+}
+
+export async function getEvaluation(req: Request, res: Response): Promise<void> {
+  const evaluationId = z.string().uuid().safeParse(req.params.id);
+  if (!evaluationId.success) {
+    res.status(400).json({ error: 'Invalid evaluation id' });
+    return;
+  }
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  try {
+    const evaluation = await getEvaluationDetail(getQueryDatabase(), {
+      evaluationId: evaluationId.data,
+      userId: req.user.userId,
+      role: req.user.role,
+    });
+    if (!evaluation) {
+      res.status(404).json({ error: 'Evaluation not found' });
+      return;
+    }
+    res.json(evaluation);
+  } catch (error) {
+    console.error('Evaluation detail lookup failed', error);
+    res.status(503).json({ error: 'Unable to retrieve evaluation' });
+  }
+}
 
 export async function createEvaluation(req: Request, res: Response): Promise<void> {
   const parsed = evaluationDraftSchema.safeParse(req.body);
@@ -159,4 +233,11 @@ function getQueryDatabase() {
 
 function isForeignKeyViolation(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === '23503';
+}
+
+function isValidDate(value: string | undefined): boolean {
+  if (value === undefined) return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }

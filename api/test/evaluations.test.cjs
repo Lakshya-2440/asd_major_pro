@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const multer = require('multer');
 const { evaluationDraftSchema } = require('../dist/controllers/evaluations.controller');
+const { evaluationListQuerySchema } = require('../dist/controllers/evaluations.controller');
+const { getEvaluationDetail, listEvaluations } = require('../dist/services/evaluations.service');
 const {
   MAX_IMAGE_SIZE_BYTES,
   InvalidImageError,
@@ -34,4 +36,62 @@ test('draft validation requires animal_id and defaults view_type to side', () =>
 test('stored image paths accept generated filenames and reject traversal', () => {
   assert.ok(resolveStoredImage('d9428888-122b-4a49-8ea2-f51bca1d46ec-1234567890.jpg'));
   assert.equal(resolveStoredImage('../secret.jpg'), null);
+});
+
+test('evaluation list applies pagination and combined filters with parameterized queries', async () => {
+  const calls = [];
+  const db = { query: async (sql, values) => {
+    calls.push({ sql, values });
+    if (sql.includes('COUNT(*)')) return { rows: [{ total: 42 }] };
+    return { rows: [{ id: 'evaluation-1', status: 'analyzed' }] };
+  } };
+  const filters = {
+    page: 3, limit: 5, species: 'cattle', breed: 'Gir', status: 'analyzed',
+    village: 'Rampur', evaluator_id: 'd9428888-122b-4a49-8ea2-f51bca1d46ec',
+    from_date: '2026-01-01', to_date: '2026-03-31',
+  };
+  const result = await listEvaluations(db, filters, {
+    userId: 'd9428888-122b-4a49-8ea2-f51bca1d46ec', role: 'supervisor',
+  });
+  assert.deepEqual(result.data, [{ id: 'evaluation-1', status: 'analyzed' }]);
+  assert.deepEqual(result.pagination, { total: 42, page: 3, limit: 5, totalPages: 9 });
+  assert.match(calls[1].sql, /JOIN animals a/);
+  assert.match(calls[1].sql, /JOIN users u/);
+  assert.match(calls[1].sql, /a\.species = \$3::"Species"/);
+  assert.match(calls[1].sql, /a\.breed ILIKE \$4/);
+  assert.match(calls[1].sql, /e\.status = \$5::"EvaluationStatus"/);
+  assert.match(calls[1].sql, /a\.village ILIKE \$6/);
+  assert.match(calls[1].sql, /e\.evaluator_id = \$7::uuid/);
+  assert.match(calls[1].sql, /LIMIT \$10 OFFSET \$11/);
+  assert.deepEqual(calls[1].values.slice(-2), [5, 10]);
+  assert.deepEqual(calls[1].values.slice(2, 9), [
+    'cattle', '%Gir%', 'analyzed', '%Rampur%', filters.evaluator_id, '2026-01-01', '2026-03-31',
+  ]);
+});
+
+test('evaluation list query validates date ranges and pagination limits', () => {
+  assert.deepEqual(evaluationListQuerySchema.parse({}), { page: 1, limit: 20 });
+  assert.equal(evaluationListQuerySchema.safeParse({ limit: '101' }).success, false);
+  assert.equal(evaluationListQuerySchema.safeParse({ from_date: '2026-02-30' }).success, false);
+  assert.equal(evaluationListQuerySchema.safeParse({ from_date: '2026-03-02', to_date: '2026-03-01' }).success, false);
+});
+
+test('evaluation detail returns aggregate relations and applies typer village scope', async () => {
+  let call;
+  const aggregate = { id: 'evaluation-1', animal: { tag_id: 'TAG-1' }, images: [], landmarks: [], measurements: [], trait_scores: [], bpa_sync: [] };
+  const db = { query: async (sql, values) => {
+    call = { sql, values };
+    return { rows: [aggregate] };
+  } };
+  const result = await getEvaluationDetail(db, {
+    evaluationId: 'd9428888-122b-4a49-8ea2-f51bca1d46ec',
+    userId: 'b11447fc-60c6-41e3-8913-9c9270062eb8', role: 'typer',
+  });
+  assert.deepEqual(result, aggregate);
+  assert.match(call.sql, /'image_url'/);
+  assert.match(call.sql, /corrected_pos/);
+  assert.match(call.sql, /final_score/);
+  assert.match(call.sql, /bpa_sync/);
+  assert.match(call.sql, /own_animal\.village/);
+  assert.deepEqual(call.values, ['d9428888-122b-4a49-8ea2-f51bca1d46ec', 'typer', 'b11447fc-60c6-41e3-8913-9c9270062eb8']);
 });

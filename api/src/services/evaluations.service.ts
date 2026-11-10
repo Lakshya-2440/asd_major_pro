@@ -6,6 +6,25 @@ import type { AnalysisResponse } from './analysis.service';
 export class AnimalNotFoundError extends Error {}
 export class DatabaseUnavailableError extends Error {}
 
+export const evaluationStatuses = ['draft', 'pending_analysis', 'analyzed', 'failed_quality', 'confirmed', 'synced'] as const;
+
+export interface EvaluationListFilters {
+  page: number;
+  limit: number;
+  species?: 'cattle' | 'buffalo';
+  breed?: string;
+  status?: typeof evaluationStatuses[number];
+  village?: string;
+  evaluator_id?: string;
+  from_date?: string;
+  to_date?: string;
+}
+
+export interface EvaluationAccessScope {
+  userId: string;
+  role: string;
+}
+
 type Connectable = Pick<Pool, 'connect'>;
 
 export interface CreateDraftInput {
@@ -54,10 +73,117 @@ export async function findEvaluationImage(
     `SELECT i.file_path
      FROM images i
      JOIN evaluations e ON e.id = i.evaluation_id
+     JOIN animals a ON a.id = e.animal_id
      WHERE e.id = $1::uuid AND i.id = $2::uuid
-       AND ($3 <> 'typer' OR e.evaluator_id = $4::uuid)
+       AND ($3 <> 'typer' OR e.evaluator_id = $4::uuid OR a.village IN (
+         SELECT DISTINCT own_animal.village
+         FROM evaluations own_evaluation
+         JOIN animals own_animal ON own_animal.id = own_evaluation.animal_id
+         WHERE own_evaluation.evaluator_id = $4::uuid AND own_animal.village IS NOT NULL
+       ))
      LIMIT 1`,
     [args.evaluationId, args.imageId, args.role, args.userId],
+  );
+  return result.rows[0];
+}
+
+export async function listEvaluations(
+  db: Pick<Pool, 'query'>,
+  filters: EvaluationListFilters,
+  access: EvaluationAccessScope,
+) {
+  const values: unknown[] = [access.role, access.userId];
+  const clauses = [
+    `($1 <> 'typer' OR e.evaluator_id = $2::uuid OR a.village IN (
+       SELECT DISTINCT own_animal.village
+       FROM evaluations own_evaluation
+       JOIN animals own_animal ON own_animal.id = own_evaluation.animal_id
+       WHERE own_evaluation.evaluator_id = $2::uuid AND own_animal.village IS NOT NULL
+     ))`,
+  ];
+  const addFilter = (sql: (placeholder: string) => string, value: unknown) => {
+    values.push(value);
+    clauses.push(sql(`$${values.length}`));
+  };
+  if (filters.species) addFilter((p) => `a.species = ${p}::"Species"`, filters.species);
+  if (filters.breed) addFilter((p) => `a.breed ILIKE ${p}`, `%${filters.breed}%`);
+  if (filters.status) addFilter((p) => `e.status = ${p}::"EvaluationStatus"`, filters.status);
+  if (filters.village) addFilter((p) => `a.village ILIKE ${p}`, `%${filters.village}%`);
+  if (filters.evaluator_id) addFilter((p) => `e.evaluator_id = ${p}::uuid`, filters.evaluator_id);
+  if (filters.from_date) addFilter((p) => `e.created_at >= ${p}::date`, filters.from_date);
+  if (filters.to_date) addFilter((p) => `e.created_at < (${p}::date + INTERVAL '1 day')`, filters.to_date);
+  const where = clauses.join(' AND ');
+
+  const countResult = await db.query<{ total: number | string }>(
+    `SELECT COUNT(*)::int AS total
+     FROM evaluations e
+     JOIN animals a ON a.id = e.animal_id
+     WHERE ${where}`,
+    values,
+  );
+  const total = Number(countResult.rows[0]?.total ?? 0);
+  const pageValues = [...values, filters.limit, (filters.page - 1) * filters.limit];
+  const result = await db.query(
+    `SELECT e.id, e.animal_id, e.evaluator_id, e.status, e.overall_score, e.pipeline_version,
+            e.created_at, e.updated_at,
+            jsonb_build_object('id', a.id, 'tag_id', a.tag_id, 'species', a.species, 'breed', a.breed,
+                               'owner_name', a.owner_name, 'village', a.village) AS animal,
+            jsonb_build_object('id', u.id, 'name', u.name, 'email', u.email, 'role', u.role) AS evaluator
+     FROM evaluations e
+     JOIN animals a ON a.id = e.animal_id
+     JOIN users u ON u.id = e.evaluator_id
+     WHERE ${where}
+     ORDER BY e.created_at DESC, e.id DESC
+     LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+    pageValues,
+  );
+  return {
+    data: result.rows,
+    pagination: {
+      total,
+      page: filters.page,
+      limit: filters.limit,
+      totalPages: Math.ceil(total / filters.limit),
+    },
+  };
+}
+
+export async function getEvaluationDetail(
+  db: Pick<Pool, 'query'>,
+  args: EvaluationAccessScope & { evaluationId: string },
+): Promise<QueryResultRow | undefined> {
+  const result = await db.query<QueryResultRow>(
+    `SELECT e.id, e.animal_id, e.evaluator_id, e.status, e.overall_score, e.pipeline_version,
+            e.created_at, e.updated_at,
+            jsonb_build_object('id', a.id, 'tag_id', a.tag_id, 'species', a.species, 'breed', a.breed,
+                               'owner_name', a.owner_name, 'village', a.village) AS animal,
+            jsonb_build_object('id', u.id, 'name', u.name, 'email', u.email, 'role', u.role) AS evaluator,
+            COALESCE((SELECT jsonb_agg(jsonb_build_object('id', i.id, 'view_type', i.view_type,
+                   'image_url', '/api/evaluations/' || e.id::text || '/images/' || i.id::text,
+                   'quality_flags', i.quality_flags)) FROM images i WHERE i.evaluation_id = e.id), '[]'::jsonb) AS images,
+            COALESCE((SELECT jsonb_agg(jsonb_build_object('id', l.id, 'name', l.name,
+                   'estimated_pos', l.estimated_pos, 'corrected_pos', l.corrected_pos, 'confidence', l.confidence))
+                   FROM landmarks l WHERE l.evaluation_id = e.id), '[]'::jsonb) AS landmarks,
+            COALESCE((SELECT jsonb_agg(jsonb_build_object('id', m.id, 'name', m.name, 'value', m.value,
+                   'unit', m.unit, 'confidence', m.confidence)) FROM measurements m WHERE m.evaluation_id = e.id), '[]'::jsonb) AS measurements,
+            COALESCE((SELECT jsonb_agg(jsonb_build_object('id', t.id, 'trait_name', t.trait_name,
+                   'ai_score', t.ai_score, 'final_score', t.final_score, 'override_reason', t.override_reason))
+                   FROM trait_scores t WHERE t.evaluation_id = e.id), '[]'::jsonb) AS trait_scores,
+            COALESCE((SELECT jsonb_agg(jsonb_build_object('id', b.id, 'status', b.status, 'attempts', b.attempts,
+                   'last_error', b.last_error, 'synced_at', b.synced_at)
+                   ORDER BY b.created_at DESC) FROM bpa_sync b WHERE b.evaluation_id = e.id), '[]'::jsonb) AS bpa_sync
+     FROM evaluations e
+     JOIN animals a ON a.id = e.animal_id
+     JOIN users u ON u.id = e.evaluator_id
+     WHERE e.id = $1::uuid
+       AND ($2 <> 'typer' OR e.evaluator_id = $3::uuid OR a.village IN (
+         SELECT DISTINCT own_animal.village
+         FROM evaluations own_evaluation
+         JOIN animals own_animal ON own_animal.id = own_evaluation.animal_id
+         WHERE own_evaluation.evaluator_id = $3::uuid AND own_animal.village IS NOT NULL
+       ))
+     LIMIT 1`,
+    [args.evaluationId, args.role, args.userId],
   );
   return result.rows[0];
 }

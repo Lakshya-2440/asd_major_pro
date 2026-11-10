@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { analyzeEvaluation, createEvaluation, getEvaluationImage } from '../controllers/evaluations.controller';
+import { analyzeEvaluation, createEvaluation, getEvaluation, getEvaluationImage, listEvaluations } from '../controllers/evaluations.controller';
 import { authenticateToken } from '../middlewares/auth.middleware';
 import { imageUpload, InvalidImageError } from '../services/storage.service';
 import multer from 'multer';
@@ -23,6 +23,8 @@ evaluationsRouter.post('/', (req, res, next) => {
 }, createEvaluation);
 
 evaluationsRouter.post('/:id/analyze', analyzeEvaluation);
+evaluationsRouter.get('/', listEvaluations);
+evaluationsRouter.get('/:id', getEvaluation);
 evaluationsRouter.get('/:evaluationId/images/:imageId', getEvaluationImage);
 
 export default evaluationsRouter;
