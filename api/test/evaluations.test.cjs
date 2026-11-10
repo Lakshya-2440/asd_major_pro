@@ -3,7 +3,13 @@ const { test } = require('node:test');
 const multer = require('multer');
 const { evaluationDraftSchema } = require('../dist/controllers/evaluations.controller');
 const { evaluationListQuerySchema } = require('../dist/controllers/evaluations.controller');
-const { getEvaluationDetail, listEvaluations } = require('../dist/services/evaluations.service');
+const { landmarkPatchSchema, scoreOverrideSchema } = require('../dist/controllers/evaluations.controller');
+const {
+  getEvaluationDetail,
+  listEvaluations,
+  overrideTraitScores,
+  persistLandmarkRecompute,
+} = require('../dist/services/evaluations.service');
 const {
   MAX_IMAGE_SIZE_BYTES,
   InvalidImageError,
@@ -94,4 +100,61 @@ test('evaluation detail returns aggregate relations and applies typer village sc
   assert.match(call.sql, /bpa_sync/);
   assert.match(call.sql, /own_animal\.village/);
   assert.deepEqual(call.values, ['d9428888-122b-4a49-8ea2-f51bca1d46ec', 'typer', 'b11447fc-60c6-41e3-8913-9c9270062eb8']);
+});
+
+test('landmark patches validate coordinates and persist corrected positions with recomputed values', async () => {
+  const coordinates = { withers: { x: 100, y: 42 } };
+  assert.equal(landmarkPatchSchema.safeParse({ landmarks: coordinates }).success, true);
+  assert.equal(landmarkPatchSchema.safeParse({ landmarks: {} }).success, false);
+  assert.equal(landmarkPatchSchema.safeParse({ landmarks: { withers: { x: '100', y: 42 } } }).success, false);
+
+  const statements = [];
+  const aggregate = { id: 'evaluation-1', status: 'analyzed' };
+  const client = { query: async (sql, values) => {
+    statements.push({ sql, values });
+    if (sql.includes('SELECT e.id, e.animal_id')) return { rows: [aggregate] };
+    return { rows: [], rowCount: 1 };
+  }, release() {} };
+  const result = await persistLandmarkRecompute({ connect: async () => client }, {
+    evaluationId: 'evaluation-1', landmarks: coordinates,
+    result: {
+      measurements: { height_at_withers_cm: { value: 142, unit: 'cm' } },
+      trait_scores: { stature: { score: 7, source: 'user_adjusted' } },
+      overall_score: 82.5,
+    },
+  });
+  assert.deepEqual(result, aggregate);
+  assert.ok(statements.some(({ sql, values }) => sql.includes('SET corrected_pos') && values[0] === JSON.stringify(coordinates.withers)));
+  assert.ok(statements.some(({ sql }) => sql.includes('INSERT INTO measurements')));
+  assert.ok(statements.some(({ sql }) => sql.includes('INSERT INTO trait_scores')));
+});
+
+test('score overrides reject invalid scores and preserve each change in audit history', async () => {
+  const validScore = { trait_name: 'stature', final_score: 7, override_reason: 'Clearer side view' };
+  assert.equal(scoreOverrideSchema.safeParse({ scores: [validScore] }).success, true);
+  assert.equal(scoreOverrideSchema.safeParse({ scores: [{ ...validScore, final_score: 10 }] }).success, false);
+  assert.equal(scoreOverrideSchema.safeParse({ scores: [{ ...validScore, final_score: 7.5 }] }).success, false);
+  assert.equal(scoreOverrideSchema.safeParse({ scores: [{ ...validScore, override_reason: 'bad' }] }).success, false);
+  assert.equal(scoreOverrideSchema.safeParse({ scores: [validScore, validScore] }).success, false);
+
+  const statements = [];
+  const audit = { id: 'audit-1', trait_name: 'stature', previous_score: 5, final_score: 7, override_reason: 'Clearer side view' };
+  const aggregate = { id: 'evaluation-1', status: 'confirmed', score_override_audit: [audit] };
+  const client = { query: async (sql, values) => {
+    statements.push({ sql, values });
+    if (sql.includes('SELECT final_score FROM trait_scores')) return { rows: [{ final_score: 5 }], rowCount: 1 };
+    if (sql.includes('SELECT e.id, e.animal_id')) return { rows: [aggregate] };
+    return { rows: [], rowCount: 1 };
+  }, release() {} };
+  const result = await overrideTraitScores({ connect: async () => client }, {
+    evaluationId: 'evaluation-1', changedBy: 'user-1', scores: [validScore],
+  });
+  assert.deepEqual(result.score_override_audit, [audit]);
+  const auditInsert = statements.find(({ sql }) => sql.includes('INSERT INTO score_override_audit'));
+  assert.ok(auditInsert);
+  assert.equal(auditInsert.values[3], 5);
+  assert.equal(auditInsert.values[4], 7);
+  assert.equal(auditInsert.values[5], 'Clearer side view');
+  assert.ok(statements.some(({ sql }) => sql.includes("status = 'confirmed'")));
+  assert.ok(statements.some(({ sql }) => sql.includes('AVG(final_score)')));
 });

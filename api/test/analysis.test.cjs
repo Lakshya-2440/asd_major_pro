@@ -61,6 +61,29 @@ test('AnalysisClient returns a structured timeout error', async () => {
   }
 });
 
+test('AnalysisClient posts corrections and scale to the recompute endpoint', async () => {
+  const http = axios.create();
+  const mock = new MockAdapter(http);
+  let body;
+  try {
+    mock.onPost('http://analysis.local/recompute').reply((config) => {
+      body = config.data;
+      return [200, {
+        measurements: { height_at_withers_cm: { value: 140, unit: 'cm' } },
+        trait_scores: { stature: { score: 7, source: 'user_adjusted' } },
+        overall_score: 82.5,
+      }];
+    });
+    const client = new AnalysisClient('http://analysis.local', http, 15_000);
+    const result = await client.recompute({ withers: { x: 20, y: 30 } }, 8.5, 'cattle', 'Gir');
+    assert.deepEqual(JSON.parse(body), { landmarks: { withers: { x: 20, y: 30 } }, pixels_per_cm: 8.5, species: 'cattle', breed: 'Gir' });
+    assert.equal(result.overall_score, 82.5);
+  } finally {
+    mock.restore();
+  }
+});
+
+
 function fakeDatabase() {
   const statements = [];
   const client = {

@@ -10,8 +10,13 @@ import {
   findEvaluationImage,
   getEvaluationDetail,
   getEvaluationForAnalysis,
+  getEvaluationForRecompute,
   listEvaluations as listEvaluationRecords,
+  LandmarkNotFoundError,
+  overrideTraitScores,
   persistAnalysisResult,
+  persistLandmarkRecompute,
+  TraitScoreNotFoundError,
 } from '../services/evaluations.service';
 import { removeUploadedFile, resolveStoredImage } from '../services/storage.service';
 
@@ -34,6 +39,26 @@ export const evaluationListQuerySchema = z.object({
   (filters) => !filters.from_date || !filters.to_date || filters.from_date <= filters.to_date,
   { message: 'from_date must be on or before to_date', path: ['to_date'] },
 );
+
+export const landmarkPatchSchema = z.object({
+  landmarks: z.record(z.string().trim().min(1).max(100), z.object({
+    x: z.number().finite(),
+    y: z.number().finite(),
+  }).strict()).refine((landmarks) => Object.keys(landmarks).length > 0 && Object.keys(landmarks).length <= 100),
+}).strict();
+
+export const scoreOverrideSchema = z.object({
+  scores: z.array(z.object({
+    trait_name: z.string().trim().min(1).max(100),
+    final_score: z.number().int().min(1).max(9),
+    override_reason: z.string().trim().min(5).max(2000),
+  }).strict()).min(1).max(100),
+}).strict().superRefine((body, context) => {
+  const names = body.scores.map((score) => score.trait_name);
+  if (new Set(names).size !== names.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'Each trait can only appear once per request', path: ['scores'] });
+  }
+});
 
 export async function listEvaluations(req: Request, res: Response): Promise<void> {
   const parsed = evaluationListQuerySchema.safeParse(req.query);
@@ -81,6 +106,131 @@ export async function getEvaluation(req: Request, res: Response): Promise<void> 
   } catch (error) {
     console.error('Evaluation detail lookup failed', error);
     res.status(503).json({ error: 'Unable to retrieve evaluation' });
+  }
+}
+
+export async function patchEvaluationLandmarks(req: Request, res: Response): Promise<void> {
+  const evaluationId = z.string().uuid().safeParse(req.params.id);
+  const body = landmarkPatchSchema.safeParse(req.body);
+  if (!evaluationId.success) {
+    res.status(400).json({ error: 'Invalid evaluation id' });
+    return;
+  }
+  if (!body.success) {
+    res.status(400).json({ error: 'Invalid landmark coordinates', details: body.error.flatten().fieldErrors });
+    return;
+  }
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  try {
+    const database = getEvaluationDatabase();
+    const record = await getEvaluationForRecompute(database, {
+      evaluationId: evaluationId.data,
+      userId: req.user.userId,
+      role: req.user.role,
+    });
+    if (!record) {
+      res.status(404).json({ error: 'Evaluation not found' });
+      return;
+    }
+    if (record.status !== 'analyzed') {
+      res.status(409).json({ error: 'Only analyzed evaluations can be recomputed' });
+      return;
+    }
+    const pixelsPerCm = Number(record.pixels_per_cm);
+    if (!Number.isFinite(pixelsPerCm) || pixelsPerCm <= 0) {
+      res.status(422).json({ error: 'Evaluation has no valid pixels_per_cm calibration scale' });
+      return;
+    }
+    const storedLandmarks = asCoordinateMap(record.landmarks);
+    const unknownLandmarks = Object.keys(body.data.landmarks).filter((name) => !(name in storedLandmarks));
+    if (unknownLandmarks.length > 0) {
+      res.status(400).json({ error: 'Unknown landmark names', landmarks: unknownLandmarks });
+      return;
+    }
+    const adjustedLandmarks = { ...storedLandmarks, ...body.data.landmarks };
+    const recomputed = await analysisClient.recompute(
+      adjustedLandmarks,
+      pixelsPerCm,
+      String(record.species),
+      String(record.breed),
+    );
+    const evaluation = await persistLandmarkRecompute(database, {
+      evaluationId: evaluationId.data,
+      landmarks: body.data.landmarks,
+      result: recomputed,
+    });
+    if (!evaluation) {
+      res.status(404).json({ error: 'Evaluation not found' });
+      return;
+    }
+    res.json(evaluation);
+  } catch (error) {
+    if (error instanceof AnalysisServiceError) {
+      const status = error.statusCode === 422 ? 422 : error.code === 'http_error' || error.code === 'invalid_response' ? 502 : 503;
+      res.status(status).json({ error: error.message, code: error.code, ...(error.statusCode ? { service_status: error.statusCode } : {}) });
+      return;
+    }
+    if (error instanceof LandmarkNotFoundError) {
+      res.status(404).json({ error: error.message });
+      return;
+    }
+    console.error('Landmark patch failed', error);
+    res.status(error instanceof DatabaseUnavailableError ? 503 : 500).json({ error: 'Unable to update landmarks' });
+  }
+}
+
+export async function patchEvaluationScores(req: Request, res: Response): Promise<void> {
+  const evaluationId = z.string().uuid().safeParse(req.params.id);
+  const body = scoreOverrideSchema.safeParse(req.body);
+  if (!evaluationId.success) {
+    res.status(400).json({ error: 'Invalid evaluation id' });
+    return;
+  }
+  if (!body.success) {
+    res.status(400).json({ error: 'Invalid score overrides', details: body.error.flatten().fieldErrors });
+    return;
+  }
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  try {
+    const database = getEvaluationDatabase();
+    const existing = await getEvaluationDetail(database, {
+      evaluationId: evaluationId.data,
+      userId: req.user.userId,
+      role: req.user.role,
+    });
+    if (!existing) {
+      res.status(404).json({ error: 'Evaluation not found' });
+      return;
+    }
+    if (!['analyzed', 'confirmed'].includes(String(existing.status))) {
+      res.status(409).json({ error: 'Only analyzed evaluations can have score overrides' });
+      return;
+    }
+    const evaluation = await overrideTraitScores(database, {
+      evaluationId: evaluationId.data,
+      changedBy: req.user.userId,
+      scores: body.data.scores,
+    });
+    if (!evaluation) {
+      res.status(404).json({ error: 'Evaluation not found' });
+      return;
+    }
+    res.json(evaluation);
+  } catch (error) {
+    if (error instanceof TraitScoreNotFoundError) {
+      res.status(404).json({ error: error.message });
+      return;
+    }
+    console.error('Score override failed', error);
+    res.status(error instanceof DatabaseUnavailableError ? 503 : 500).json({ error: 'Unable to override evaluation scores' });
   }
 }
 
@@ -240,4 +390,14 @@ function isValidDate(value: string | undefined): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function asCoordinateMap(value: unknown): Record<string, { x: number; y: number }> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([name, point]) => {
+    if (typeof point !== 'object' || point === null || !('x' in point) || !('y' in point)) return [];
+    const x = Number(point.x);
+    const y = Number(point.y);
+    return Number.isFinite(x) && Number.isFinite(y) ? [[name, { x, y }]] : [];
+  }));
 }

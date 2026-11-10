@@ -29,6 +29,7 @@ class PredictResponse(BaseModel):
     species: str = "cattle"
     breed: str = "Gir"
     pipeline_version: str = "0.2.0"
+    pixels_per_cm: Optional[float] = None
     quality_flags: List[str] = Field(default_factory=list)
     landmarks: Dict[str, Any] = Field(default_factory=dict)
     measurements: Dict[str, Any] = Field(default_factory=dict)

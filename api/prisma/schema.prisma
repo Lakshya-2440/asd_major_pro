@@ -47,6 +47,7 @@ model User {
   role         UserRole     @default(typer)
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   evaluations  Evaluation[]
+  scoreOverrideAudit ScoreOverrideAudit[]
 
   @@map("users")
 }
@@ -72,6 +73,7 @@ model Evaluation {
   status         EvaluationStatus @default(draft)
   overallScore   Float?           @map("overall_score")
   pipelineVersion String?         @map("pipeline_version")
+  pixelsPerCm    Float?           @map("pixels_per_cm")
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   animal         Animal           @relation(fields: [animalId], references: [id], onDelete: Restrict)
@@ -81,6 +83,7 @@ model Evaluation {
   measurements   Measurement[]
   traitScores    TraitScore[]
   bpaSync        BpaSync[]
+  scoreOverrideAudit ScoreOverrideAudit[]
 
   @@index([animalId])
   @@index([evaluatorId])
@@ -137,6 +140,22 @@ model TraitScore {
 
   @@unique([evaluationId, traitName])
   @@map("trait_scores")
+}
+
+model ScoreOverrideAudit {
+  id             String     @id @default(uuid()) @db.Uuid
+  evaluationId   String     @map("evaluation_id") @db.Uuid
+  traitName      String     @map("trait_name")
+  previousScore  Int        @map("previous_score")
+  finalScore     Int        @map("final_score")
+  overrideReason String     @map("override_reason") @db.Text
+  changedBy      String     @map("changed_by") @db.Uuid
+  changedAt      DateTime   @default(now()) @map("changed_at") @db.Timestamptz(6)
+  evaluation     Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [changedBy], references: [id], onDelete: Restrict)
+
+  @@index([evaluationId, traitName, changedAt])
+  @@map("score_override_audit")
 }
 
 model BpaSync {
