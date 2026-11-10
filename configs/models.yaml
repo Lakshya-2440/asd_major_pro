@@ -1,0 +1,24 @@
+# Model configurations for Computer Vision & Analysis Pipeline
+
+segmentation:
+  model_id: "facebook/detr-resnet-50-panoptic"
+  api_url: "https://api-inference.huggingface.co/models/facebook/detr-resnet-50-panoptic"
+  timeout_seconds: 30.0
+  max_retries: 3
+  backoff_factor: 1.5
+  retry_status_codes:
+    - 429
+    - 503
+  target_labels:
+    - "cow"
+    - "cattle"
+    - "ox"
+    - "animal"
+    - "bull"
+    - "bovine"
+    - "buffalo"
+    - "livestock"
+  morphology:
+    kernel_size: 7
+    smoothing_epsilon_factor: 0.002
+
