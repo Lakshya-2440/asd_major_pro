@@ -1,0 +1,43 @@
+[
+  {
+    "image_path": "data/validation/cow_gir_01.jpg",
+    "species": "cattle",
+    "breed": "Gir",
+    "tape_height_cm": 134.5,
+    "tape_length_cm": 232.0,
+    "expert_stature_score": 5
+  },
+  {
+    "image_path": "data/validation/cow_gir_02.jpg",
+    "species": "cattle",
+    "breed": "Gir",
+    "tape_height_cm": 139.0,
+    "tape_length_cm": 240.5,
+    "expert_stature_score": 6
+  },
+  {
+    "image_path": "data/validation/cow_gir_03.jpg",
+    "species": "cattle",
+    "breed": "Gir",
+    "tape_height_cm": 144.5,
+    "tape_length_cm": 249.5,
+    "expert_stature_score": 7
+  },
+  {
+    "image_path": "data/validation/cow_sahiwal_01.jpg",
+    "species": "cattle",
+    "breed": "Sahiwal",
+    "tape_height_cm": 130.0,
+    "tape_length_cm": 224.5,
+    "expert_stature_score": 5
+  },
+  {
+    "image_path": "data/validation/buffalo_murrah_01.jpg",
+    "species": "buffalo",
+    "breed": "Murrah",
+    "tape_height_cm": 126.0,
+    "tape_length_cm": 217.5,
+    "expert_stature_score": 2
+  }
+]
+

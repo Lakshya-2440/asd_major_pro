@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import cv2
 import numpy as np
@@ -27,8 +27,8 @@ class ImageQualityChecker:
 
     def __init__(
         self,
-        config_path: Optional[Union[str, Path]] = None,
-        config: Optional[dict[str, Any]] = None,
+        config_path: str | Path | None = None,
+        config: dict[str, Any] | None = None,
     ) -> None:
         """Initialize thresholds from YAML configuration file and/or dictionary overrides."""
         self.thresholds: dict[str, Any] = DEFAULT_THRESHOLDS.copy()
@@ -40,7 +40,7 @@ class ImageQualityChecker:
                 with open(path_to_load, "r", encoding="utf-8") as f:
                     file_data = yaml.safe_load(f) or {}
                     self._merge_config(file_data)
-            except Exception as e:
+            except (OSError, yaml.YAMLError) as e:
                 logger.warning("Failed to load quality config from %s: %s", path_to_load, e)
 
         # Apply direct config dictionary overrides if supplied
@@ -97,7 +97,7 @@ class ImageQualityChecker:
         if "require_landscape" in cfg:
             self.thresholds["require_landscape"] = bool(cfg["require_landscape"])
 
-    def check_image(self, image_bytes: Union[bytes, bytearray, np.ndarray]) -> dict[str, Any]:
+    def check_image(self, image_bytes: bytes | bytearray | np.ndarray) -> dict[str, Any]:
         """
         Validate quality metrics of an input image.
 
@@ -107,7 +107,7 @@ class ImageQualityChecker:
         Returns:
             Dict containing is_acceptable (bool), flags (list[str]), and metrics (dict).
         """
-        image: Optional[np.ndarray] = None
+        image: np.ndarray | None = None
 
         if isinstance(image_bytes, np.ndarray):
             image = image_bytes
