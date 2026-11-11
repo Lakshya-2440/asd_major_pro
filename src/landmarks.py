@@ -274,6 +274,14 @@ class LandmarkExtractor:
         active_orient = orientation or self.default_orientation
         return extract_landmarks(mask, orientation=active_orient)
 
+    def extract(
+        self,
+        mask: np.ndarray,
+        orientation: str | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """Alias for extract_landmarks."""
+        return self.extract_landmarks(mask, orientation=orientation)
+
     def __call__(
         self,
         mask: np.ndarray,

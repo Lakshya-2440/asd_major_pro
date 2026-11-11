@@ -1,0 +1,40 @@
+# Species and breed linear type classification criteria (1-9 scale) and overall weighting
+
+scoring_version: "1.0.0"
+
+scale:
+  min_score: 50.0  # Base linear score for all minimum values
+  max_score: 100.0  # Maximum type score for all maximum values
+
+cattle:
+  weights:
+    stature: 0.25
+    body_length: 0.20
+    body_depth: 0.25
+    rump_angle: 0.30
+  breeds:
+    gir:
+      stature: [112.0, 117.0, 122.0, 127.0, 132.0, 137.0, 142.0, 147.0, 152.0]
+      body_length: [128.0, 133.0, 138.0, 143.0, 148.0, 153.0, 158.0, 163.0, 168.0]
+      body_depth: [56.0, 60.0, 64.0, 68.0, 72.0, 76.0, 80.0, 84.0, 88.0]
+      rump_angle: [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0]
+
+    sahiwal:
+      stature: [110.0, 115.0, 120.0, 125.0, 130.0, 135.0, 140.0, 145.0, 150.0]
+      body_length: [124.0, 129.0, 134.0, 139.0, 144.0, 149.0, 154.0, 159.0, 164.0]
+      body_depth: [54.0, 58.0, 62.0, 66.0, 70.0, 74.0, 78.0, 82.0, 86.0]
+      rump_angle: [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0]
+
+buffalo:
+  weights:
+    stature: 0.25
+    body_length: 0.20
+    body_depth: 0.25
+    rump_angle: 0.30
+  breeds:
+    murrah:
+      stature: [120.0, 125.0, 130.0, 135.0, 140.0, 145.0, 150.0, 155.0, 160.0]
+      body_length: [135.0, 140.0, 145.0, 150.0, 155.0, 160.0, 165.0, 170.0, 175.0]
+      body_depth: [60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0, 95.0, 100.0]
+      rump_angle: [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0]
+
