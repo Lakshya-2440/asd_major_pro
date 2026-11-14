@@ -40,6 +40,8 @@ services:
           property: connectionString
       - key: DEMO_MODE
         value: "true"
+      - key: FRONTEND_ORIGIN
+        value: "https://autoatc.vercel.app"
 
 databases:
   - name: auto-atc-db

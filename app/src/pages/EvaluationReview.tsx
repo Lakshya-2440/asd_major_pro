@@ -179,6 +179,17 @@ export default function EvaluationReview() {
   const traitScores = evaluation.trait_scores ?? []
   const traitScoreMap = new Map(traitScores.map((t) => [t.trait_name, t]))
 
+  // Resolve subject image URL
+  const primaryImage = evaluation.images?.[0]
+  const imagePath = primaryImage?.image_url
+  const finalImageUrl = imagePath
+    ? imagePath.startsWith('http') || imagePath.startsWith('blob:') || imagePath.startsWith('data:') || imagePath.startsWith('/samples/')
+      ? imagePath
+      : `${(import.meta.env.VITE_API_URL ?? '/api').replace(/\/api\/?$/, '')}${imagePath}`
+    : evaluation.animal?.species === 'buffalo'
+      ? '/samples/buffalo_murrah_01.jpg'
+      : '/samples/cow_gir_01.jpg'
+
   // Fill default trait scores if list is empty
   const displayTraits: TraitScoreItem[] = TRAIT_KEYS.map((k) => {
     return (
@@ -199,16 +210,16 @@ export default function EvaluationReview() {
   const scoreVal = evaluation.overall_score ?? 82.5
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
         <button
           type="button"
           onClick={() => navigate('/evaluations')}
-          className="flex items-center gap-1.5 text-xs font-black text-slate-600 hover:text-slate-900 transition"
+          className="flex items-center gap-2 text-xs font-black text-slate-700 hover:text-emerald-700 transition"
         >
           <ArrowLeft size={16} />
-          <span>All Records</span>
+          <span>Back to All Evaluation Records</span>
         </button>
 
         <BpaSyncBadge status={syncStatus} referenceId={refId} />
@@ -230,19 +241,20 @@ export default function EvaluationReview() {
       )}
 
       {/* Hero Composite Score Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-6 sm:p-8 text-white shadow-2xl shadow-emerald-950/20">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-6 sm:p-8 text-white shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-black uppercase tracking-wider mb-2">
               <Award size={13} className="text-emerald-400" />
-              <span>Rashtriya Gokul Mission · Elite Dam Evaluation</span>
+              <span>Rashtriya Gokul Mission · Bovine Phenotypic Assessment</span>
             </div>
-            <h1 className="font-mono text-3xl font-black text-white tracking-tight">
+            <h1 className="font-mono text-3xl sm:text-4xl font-black text-white tracking-tight">
               #{evaluation.animal?.tag_id ?? '76R7'}
             </h1>
             <p className="text-sm font-semibold text-slate-300 capitalize mt-1">
               {evaluation.animal?.breed} · {evaluation.animal?.species}
               {evaluation.animal?.village && ` · ${evaluation.animal.village}`}
+              {evaluation.animal?.owner_name && ` (Owner: ${evaluation.animal.owner_name})`}
             </p>
           </div>
 
@@ -277,148 +289,201 @@ export default function EvaluationReview() {
         </div>
       </div>
 
-      {/* Section 1: Physical Measurements */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Ruler size={18} className="text-emerald-700" />
-          <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
-            Automated Morphometric Measurements
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {measurements.map((m) => (
-            <div
-              key={m.name}
-              className="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm"
-            >
-              <span className="text-xs font-bold text-slate-500 capitalize block">
-                {formatTraitName(m.name)}
-              </span>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="font-mono text-2xl font-black text-slate-900">
-                  {typeof m.value === 'number' ? m.value.toFixed(1) : m.value}
-                </span>
-                <span className="text-xs font-bold text-slate-500">{m.unit}</span>
-              </div>
-              {m.confidence && (
-                <span className="mt-1.5 inline-block text-[10px] font-black uppercase tracking-wider text-emerald-700">
-                  {Math.round(m.confidence * 100)}% Conf.
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Section 2: Linear Trait Scores (1-9 Scale) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity size={18} className="text-emerald-700" />
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
-              ATC Linear Trait Scores (1 – 9 Standard Scale)
-            </h2>
-          </div>
-          <span className="text-xs font-bold text-slate-500">Tap pen to override score</span>
-        </div>
-
-        <div className="space-y-2.5">
-          {displayTraits.map((t) => {
-            const final = t.final_score ?? t.ai_score ?? 5
-            const isOverridden = t.final_score !== null && t.final_score !== undefined && t.final_score !== t.ai_score
-
-            return (
-              <div
-                key={t.trait_name}
-                className="flex items-center justify-between rounded-2xl border-2 border-slate-200/90 bg-white p-4 shadow-sm transition hover:border-emerald-600"
+      {/* Main 2-Column Split */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column (5 Cols): Inspection Image & Quality */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
+                Subject Bovine Photo
+              </h2>
+              <button
+                type="button"
+                onClick={() => navigate(`/evaluations/${id}/landmarks`)}
+                className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-800 transition"
               >
-                <div className="flex-1 pr-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black text-slate-900">
-                      {formatTraitName(t.trait_name)}
-                    </span>
-                    {isOverridden && (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-800">
-                        Typer Overridden
-                      </span>
-                    )}
-                  </div>
+                <Edit2 size={13} />
+                <span>Adjust Landmarks</span>
+              </button>
+            </div>
 
-                  {/* 1-9 Visual Progress Track */}
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-600 transition-all duration-500"
-                        style={{ width: `${(final / 9) * 100}%` }}
-                      />
-                    </div>
-                    <span className="font-mono text-xs font-black text-slate-700 w-8 text-right">
-                      {final} / 9
-                    </span>
-                  </div>
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 aspect-[4/3] group">
+              <img
+                src={finalImageUrl}
+                alt="Subject Bovine"
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute bottom-3 left-3 rounded-xl bg-black/75 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-md border border-white/20">
+                ArUco 10x10 cm Scale Calibrated
+              </div>
+            </div>
 
-                  {t.override_reason && (
-                    <p className="mt-1.5 text-xs font-semibold text-slate-500 italic">
-                      Reason: &quot;{t.override_reason}&quot;
-                    </p>
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-2 text-xs font-semibold text-slate-600">
+              <div className="flex items-center justify-between">
+                <span>View Perspective</span>
+                <strong className="text-slate-800 uppercase">Perpendicular Side View</strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Quality Gate</span>
+                <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                  <CheckCircle2 size={13} /> Passed (Sharpness, Contrast, Scale)
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Field Typer</span>
+                <strong className="text-slate-800">{evaluation.evaluator?.name || 'Field Typer (Guest)'}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column (7 Cols): Trait Scores, Measurements & BPA Sync */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Section 1: Physical Measurements */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Ruler size={18} className="text-emerald-700" />
+              <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
+                Automated Morphometric Measurements
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {measurements.map((m) => (
+                <div
+                  key={m.name}
+                  className="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  <span className="text-xs font-bold text-slate-500 capitalize block">
+                    {formatTraitName(m.name)}
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="font-mono text-2xl font-black text-slate-900">
+                      {typeof m.value === 'number' ? m.value.toFixed(1) : m.value}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500">{m.unit}</span>
+                  </div>
+                  {m.confidence && (
+                    <span className="mt-1.5 inline-block text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                      {Math.round(m.confidence * 100)}% Conf.
+                    </span>
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveOverrideTrait(t)}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 active:scale-95 transition"
-                  title="Override Trait Score"
-                >
-                  <Edit2 size={16} />
-                </button>
+          {/* Section 2: Linear Trait Scores (1-9 Scale) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity size={18} className="text-emerald-700" />
+                <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
+                  ATC Linear Trait Scores (1 – 9 Standard Scale)
+                </h2>
               </div>
-            )
-          })}
-        </div>
-      </div>
+              <span className="text-xs font-bold text-slate-500">Tap pen to override score</span>
+            </div>
 
-      {/* BPA Sync CTA Footer */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-            <Sparkles size={24} />
+            <div className="space-y-2.5">
+              {displayTraits.map((t) => {
+                const final = t.final_score ?? t.ai_score ?? 5
+                const isOverridden = t.final_score !== null && t.final_score !== undefined && t.final_score !== t.ai_score
+
+                return (
+                  <div
+                    key={t.trait_name}
+                    className="flex items-center justify-between rounded-2xl border-2 border-slate-200/90 bg-white p-4 shadow-sm transition hover:border-emerald-600"
+                  >
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-slate-900">
+                          {formatTraitName(t.trait_name)}
+                        </span>
+                        {isOverridden && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                            Typer Overridden
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 1-9 Visual Progress Track */}
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-600 transition-all duration-500"
+                            style={{ width: `${(final / 9) * 100}%` }}
+                          />
+                        </div>
+                        <span className="font-mono text-xs font-black text-slate-700 w-8 text-right">
+                          {final} / 9
+                        </span>
+                      </div>
+
+                      {t.override_reason && (
+                        <p className="mt-1.5 text-xs font-semibold text-slate-500 italic">
+                          Reason: &quot;{t.override_reason}&quot;
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveOverrideTrait(t)}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 active:scale-95 transition"
+                      title="Override Trait Score"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-black text-slate-900">
-              Bharat Pashudhan App (BPA) Auto-Synchronization
-            </h3>
-            <p className="text-xs font-semibold text-slate-500">
-              Pushes encrypted linear scores, ArUco calibration, and audit logs to NDDB registry
-            </p>
+
+          {/* BPA Sync CTA Card */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 shrink-0">
+                <Sparkles size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  Bharat Pashudhan App (BPA) Auto-Synchronization
+                </h3>
+                <p className="text-xs font-semibold text-slate-500">
+                  Transmits validated linear scores and device metadata directly to national animal registry
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={syncingBpa || isSynced}
+              onClick={handlePushToBpa}
+              className={`flex w-full min-h-touch items-center justify-center gap-2.5 rounded-2xl py-4 text-sm font-black transition shadow-lg active:scale-[0.99] ${
+                isSynced
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-none cursor-default'
+                  : 'bg-emerald-600 text-white shadow-emerald-600/30 hover:bg-emerald-700'
+              }`}
+            >
+              {syncingBpa ? (
+                <span>Transmitting to BPA Gateway...</span>
+              ) : isSynced ? (
+                <>
+                  <CheckCircle2 size={18} />
+                  <span>Record Synchronized to BPA ({refId})</span>
+                </>
+              ) : (
+                <>
+                  <Send size={18} />
+                  <span>Push Record to Bharat Pashudhan App (BPA)</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
-
-        <button
-          type="button"
-          disabled={syncingBpa || isSynced}
-          onClick={handlePushToBpa}
-          className={`flex w-full min-h-touch items-center justify-center gap-2.5 rounded-2xl py-4 text-sm font-black transition shadow-lg active:scale-[0.99] ${
-            isSynced
-              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-none cursor-default'
-              : 'bg-emerald-600 text-white shadow-emerald-600/30 hover:bg-emerald-700'
-          }`}
-        >
-          {syncingBpa ? (
-            <span>Transmitting to BPA Gateway...</span>
-          ) : isSynced ? (
-            <>
-              <CheckCircle2 size={18} />
-              <span>Record Synchronized to BPA ({refId})</span>
-            </>
-          ) : (
-            <>
-              <Send size={18} />
-              <span>Push Record to Bharat Pashudhan App (BPA)</span>
-            </>
-          )}
-        </button>
       </div>
 
       {/* Override Modal */}

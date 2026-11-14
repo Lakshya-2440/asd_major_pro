@@ -13,10 +13,14 @@ import bpaMockRouter from './mock/bpa.mock';
 
 const app = express();
 
+const allowedOrigins = env.FRONTEND_ORIGIN === '*'
+  ? true
+  : env.FRONTEND_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
+
 app.use(helmet());
 app.use(
   cors({
-    origin: env.FRONTEND_ORIGIN === '*' ? true : env.FRONTEND_ORIGIN,
+    origin: allowedOrigins,
     credentials: true,
   })
 );

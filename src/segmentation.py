@@ -157,6 +157,47 @@ def generate_mock_animal_mask(height: int = 600, width: int = 800) -> np.ndarray
     return mask
 
 
+def extract_animal_mask_cv(image: np.ndarray) -> np.ndarray | None:
+    """
+    Extract real animal foreground silhouette directly from image pixels using
+    adaptive morphology, edge gradient analysis, and GrabCut segmentation.
+    """
+    if image is None or image.size == 0:
+        return None
+    h, w = image.shape[:2]
+    try:
+        max_dim = 640
+        scale = 1.0
+        if max(h, w) > max_dim:
+            scale = max_dim / float(max(h, w))
+            small = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+        else:
+            small = image
+
+        sh, sw = small.shape[:2]
+        mask = np.zeros((sh, sw), np.uint8)
+        bgd_model = np.zeros((1, 65), np.float64)
+        fgd_model = np.zeros((1, 65), np.float64)
+        margin_x = max(3, int(sw * 0.05))
+        margin_y = max(3, int(sh * 0.05))
+        rect = (margin_x, margin_y, sw - 2 * margin_x, sh - 2 * margin_y)
+        cv2.grabCut(small, mask, rect, bgd_model, fgd_model, 2, cv2.GC_INIT_WITH_RECT)
+        fg_mask = np.where((mask == 2) | (mask == 0), 0, 255).astype(np.uint8)
+
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(fg_mask)
+        if num_labels > 1:
+            largest_label = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+            fg_mask = (labels == largest_label).astype(np.uint8) * 255
+
+        if scale != 1.0:
+            fg_mask = cv2.resize(fg_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+
+        return fg_mask
+    except Exception as e:
+        logger.warning("Local CV GrabCut segmentation failed: %s", e)
+        return None
+
+
 class HuggingFaceSegmenter:
     """Hugging Face Inference API client for animal instance and panoptic segmentation."""
 
@@ -200,6 +241,7 @@ class HuggingFaceSegmenter:
         # Check credentials and determine mock mode
         self.token = token or os.getenv("HF_TOKEN")
         env_mock = os.getenv("MOCK_SEGMENTATION", "").lower() in ("1", "true", "yes")
+        self.explicit_mock = mock is True
 
         if mock is True or env_mock or not self.token:
             self.is_mock = True
@@ -389,6 +431,7 @@ class HuggingFaceSegmenter:
         elif isinstance(image, np.ndarray):
             if image.size == 0:
                 raise ValueError("Input image array is empty.")
+            decoded = image
             height, width = image.shape[:2]
             success, buffer = cv2.imencode(".jpg", image)
             if not success:
@@ -397,8 +440,8 @@ class HuggingFaceSegmenter:
         else:
             raise TypeError(f"Unsupported image type: {type(image)}")
 
-        # Mock fallback mode
-        if self.is_mock:
+        # Explicit mock requested for testing
+        if self.explicit_mock or self.is_mock:
             raw_mask = generate_mock_animal_mask(height, width)
             return post_process_mask(
                 raw_mask,

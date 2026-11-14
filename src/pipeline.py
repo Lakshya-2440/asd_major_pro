@@ -130,7 +130,9 @@ class AnalysisPipeline:
         quality_flags.extend(quality_res.get("flags", []))
         is_acceptable = quality_res.get("is_acceptable", True)
 
-        if not is_acceptable:
+        # Fatal quality failure (corrupt image or completely black frame)
+        fatal_flags = {"invalid_image", "too_dark"}
+        if any(flag in fatal_flags for flag in quality_flags):
             t_total = (time.perf_counter() - t_start) * 1000.0
             latency_breakdown["total_ms"] = round(t_total, 2)
             logger.info("Image failed quality validation: %s", quality_flags)
@@ -330,6 +332,7 @@ class AnalysisPipeline:
             "latency_ms": latency_breakdown,
             "timing_ms": latency_breakdown,
             "warnings": warnings,
+            "error": seg_error,
         }
 
     def predict(

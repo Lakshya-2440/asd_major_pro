@@ -234,6 +234,34 @@ export async function patchEvaluationScores(req: Request, res: Response): Promis
   }
 }
 
+export async function predictDirect(req: Request, res: Response): Promise<void> {
+  const file = req.file || (Array.isArray(req.files) ? req.files[0] : (req.files && typeof req.files === 'object') ? (Object.values(req.files) as Express.Multer.File[][])[0]?.[0] : undefined);
+  if (!file) {
+    res.status(400).json({ error: 'An image file is required' });
+    return;
+  }
+  const species = typeof req.body.species === 'string' ? req.body.species : 'cattle';
+  const breed = typeof req.body.breed === 'string' ? req.body.breed : 'Gir';
+  try {
+    const analysis = await analysisClient.analyzeSideView(file.path, species, breed);
+    res.json(analysis);
+  } catch (error) {
+    if (error instanceof AnalysisServiceError) {
+      const status = error.code === 'http_error' || error.code === 'invalid_response' ? 502 : 503;
+      res.status(status).json({
+        error: error.message,
+        code: error.code,
+        ...(error.statusCode ? { service_status: error.statusCode } : {}),
+      });
+      return;
+    }
+    console.error('Direct prediction failed', error);
+    res.status(502).json({ error: 'Analysis service failed or unavailable' });
+  } finally {
+    await removeUploadedFile(file.path).catch(() => undefined);
+  }
+}
+
 export async function createEvaluation(req: Request, res: Response): Promise<void> {
   const parsed = evaluationDraftSchema.safeParse(req.body);
   if (!parsed.success) {

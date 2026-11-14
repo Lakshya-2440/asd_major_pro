@@ -7,13 +7,13 @@ import { getStoredEvaluation, updateStoredLandmarks } from '../services/evaluati
 import type { Evaluation, LandmarkCoord } from '../types/models'
 
 const STANDARD_LANDMARKS: { name: string; label: string; color: string; defaultPos: LandmarkCoord }[] = [
-  { name: 'withers', label: 'Withers', color: '#38bdf8', defaultPos: { x: 260, y: 140 } },
-  { name: 'shoulder_point', label: 'Shoulder', color: '#4ade80', defaultPos: { x: 190, y: 220 } },
-  { name: 'hip_point', label: 'Hip (Hook)', color: '#fbbf24', defaultPos: { x: 490, y: 170 } },
-  { name: 'pin_bone', label: 'Pin Bone', color: '#f87171', defaultPos: { x: 570, y: 195 } },
-  { name: 'brisket', label: 'Brisket', color: '#c084fc', defaultPos: { x: 280, y: 310 } },
-  { name: 'front_hoof', label: 'Front Hoof', color: '#60a5fa', defaultPos: { x: 250, y: 460 } },
-  { name: 'rear_hoof', label: 'Rear Hoof', color: '#f472b6', defaultPos: { x: 540, y: 460 } },
+  { name: 'withers', label: 'Withers', color: '#38bdf8', defaultPos: { x: 652, y: 255 } },
+  { name: 'shoulder_point', label: 'Shoulder', color: '#4ade80', defaultPos: { x: 813, y: 334 } },
+  { name: 'hip_point', label: 'Hip (Hook)', color: '#fbbf24', defaultPos: { x: 462, y: 255 } },
+  { name: 'pin_bone', label: 'Pin Bone', color: '#f87171', defaultPos: { x: 140, y: 359 } },
+  { name: 'brisket', label: 'Brisket', color: '#c084fc', defaultPos: { x: 617, y: 547 } },
+  { name: 'front_hoof', label: 'Front Hoof', color: '#60a5fa', defaultPos: { x: 620, y: 645 } },
+  { name: 'rear_hoof', label: 'Rear Hoof', color: '#f472b6', defaultPos: { x: 300, y: 645 } },
 ]
 
 export default function LandmarkAdjustment() {
@@ -155,27 +155,27 @@ export default function LandmarkAdjustment() {
     : '/samples/cow_gir_01.jpg'
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
+    <div className="max-w-6xl mx-auto space-y-5">
       {/* Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-black uppercase tracking-wider mb-1">
-            <Sparkles size={12} className="text-emerald-600" />
-            <span>AI Landmark Extraction</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-black uppercase tracking-wider mb-1.5">
+            <Sparkles size={13} className="text-emerald-600" />
+            <span>AI Landmark Extraction & Human-In-The-Loop Validation</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Adjust Anatomical Points
+            Adjust Anatomical Keypoints
           </h1>
-          <p className="text-xs font-semibold text-slate-500">
-            Drag any pin to refine bone landmarks prior to linear score generation
+          <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-0.5">
+            Drag any colored pin to refine skeletal landmarks prior to true centimeter calculation
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={handleReset}
-            className="flex min-h-touch items-center gap-1.5 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition"
+            className="flex min-h-touch items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition"
           >
             <RotateCcw size={15} />
             <span>Reset Points</span>
@@ -185,9 +185,9 @@ export default function LandmarkAdjustment() {
             type="button"
             disabled={saving}
             onClick={handleConfirm}
-            className="flex min-h-touch items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 active:scale-95 transition disabled:opacity-50"
+            className="flex min-h-touch items-center gap-2 rounded-2xl bg-emerald-600 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-500 active:scale-95 transition disabled:opacity-50"
           >
-            <span>{saving ? 'Computing...' : 'Calculate Scores'}</span>
+            <span>{saving ? 'Computing Phenotypes...' : 'Confirm & Generate Scores'}</span>
             <ArrowRight size={16} />
           </button>
         </div>
