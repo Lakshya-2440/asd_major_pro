@@ -2,8 +2,8 @@ import axios from 'axios'
 import { getToken } from './session'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api',
-  timeout: 15000,
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
+  timeout: 20000,
 })
 
 api.interceptors.request.use((config) => {

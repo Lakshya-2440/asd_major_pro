@@ -18,6 +18,7 @@ export interface Animal {
   owner_name?: string | null
   village?: string | null
   created_at?: string
+  previous_evaluations_count?: number
 }
 
 export interface LandmarkCoord {
