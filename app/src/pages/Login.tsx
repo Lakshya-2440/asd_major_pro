@@ -1,61 +1,63 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { ShieldCheck, LogIn, AlertCircle, Zap } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
+import { useState, useEffect, type FormEvent } from "react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { ShieldCheck, LogIn, AlertCircle, Zap } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { login, loginAsGuest, isAuthenticated } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [searchParams] = useSearchParams()
-  const isExplicitLogout = searchParams.get('logout') === 'true'
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
+  const { login, loginAsGuest, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const isExplicitLogout = searchParams.get("logout") === "true";
+  const from =
+    (location.state as { from?: { pathname: string } })?.from?.pathname ||
+    "/dashboard";
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Auto-login default guest typer unless user explicitly chose to log out
   useEffect(() => {
     if (!isExplicitLogout && !isAuthenticated) {
       const timer = setTimeout(() => {
-        loginAsGuest(true)
-        navigate(from, { replace: true })
-      }, 50)
-      return () => clearTimeout(timer)
+        loginAsGuest(true);
+        navigate(from, { replace: true });
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [isExplicitLogout, isAuthenticated, loginAsGuest, navigate, from])
+  }, [isExplicitLogout, isAuthenticated, loginAsGuest, navigate, from]);
 
   const handleGuestContinue = () => {
-    loginAsGuest(true)
-    navigate(from, { replace: true })
-  }
+    loginAsGuest(true);
+    navigate(from, { replace: true });
+  };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
     try {
-      await login(email, password, remember)
-      navigate(from, { replace: true })
+      await login(email, password, remember);
+      navigate(from, { replace: true });
     } catch (err: unknown) {
-      if (typeof err === 'object' && err !== null && 'response' in err) {
-        const axErr = err as { response?: { data?: { error?: string } } }
-        setError(axErr.response?.data?.error || 'Invalid email or password')
+      if (typeof err === "object" && err !== null && "response" in err) {
+        const axErr = err as { response?: { data?: { error?: string } } };
+        setError(axErr.response?.data?.error || "Invalid email or password");
       } else {
-        setError('Unable to connect to authentication service')
+        setError("Unable to connect to authentication service");
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fillDemo = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail)
-    setPassword(demoPass)
-  }
+    setEmail(demoEmail);
+    setPassword(demoPass);
+  };
 
   return (
     <div className="flex min-h-dvh flex-col justify-center bg-slate-100 p-4">
@@ -65,7 +67,9 @@ export default function Login() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-700 text-white shadow-md">
             <ShieldCheck size={36} />
           </div>
-          <h1 className="mt-4 text-2xl font-black tracking-tight text-slate-900">Auto-ATC</h1>
+          <h1 className="mt-4 text-2xl font-black tracking-tight text-slate-900">
+            Auto-ATC
+          </h1>
           <p className="mt-1 text-sm font-semibold text-slate-600">
             Automated Animal Type Classification System
           </p>
@@ -75,8 +79,7 @@ export default function Login() {
         </div>
 
         {error && (
-          <div className="mt-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">
-            <AlertCircle size={18} className="shrink-0" />
+          <div role="alert" className="mt-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">
             <span>{error}</span>
           </div>
         )}
@@ -93,15 +96,23 @@ export default function Login() {
           </button>
           <div className="mt-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">or sign in</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              or sign in
+            </span>
             <div className="h-px flex-1 bg-slate-200" />
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+            <label
+              htmlFor="login-email"
+              className="block text-xs font-bold text-slate-700 mb-1"
+            >
+              Email Address
+            </label>
             <input
+              id="login-email"
               type="email"
               required
               value={email}
@@ -112,8 +123,14 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+            <label
+              htmlFor="login-password"
+              className="block text-xs font-bold text-slate-700 mb-1"
+            >
+              Password
+            </label>
             <input
+              id="login-password"
               type="password"
               required
               value={password}
@@ -153,18 +170,24 @@ export default function Login() {
 
         {/* Demo Fast Login Buttons */}
         <div className="mt-6 border-t border-slate-200 pt-4">
-          <p className="text-center text-xs font-bold text-slate-500 mb-2">Demo Quick-Fill:</p>
+          <p className="text-center text-xs font-bold text-slate-500 mb-2">
+            Demo Quick-Fill:
+          </p>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => fillDemo('typer@auto-atc.local', 'ChangeMe-Typer-123!')}
+              onClick={() =>
+                fillDemo("typer@auto-atc.local", "ChangeMe-Typer-123!")
+              }
               className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
             >
               Typer Account
             </button>
             <button
               type="button"
-              onClick={() => fillDemo('admin@auto-atc.local', 'ChangeMe-Admin-123!')}
+              onClick={() =>
+                fillDemo("admin@auto-atc.local", "ChangeMe-Admin-123!")
+              }
               className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
             >
               Admin Account
@@ -173,5 +196,5 @@ export default function Login() {
         </div>
       </div>
     </div>
-  )
+  );
 }

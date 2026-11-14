@@ -22,6 +22,10 @@
     @apply inline-flex min-h-touch min-w-touch items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-6 text-lg font-bold text-slate-900 active:bg-slate-100;
   }
   .field-input {
-    @apply min-h-touch w-full rounded-xl border-2 border-slate-900 bg-white px-4 text-lg text-slate-900 placeholder:text-slate-500 disabled:border-slate-400 disabled:bg-slate-100 disabled:text-slate-500 aria-invalid:border-red-700 aria-invalid:ring-2 aria-invalid:ring-red-700;
+    @apply min-h-touch w-full rounded-xl border-2 border-slate-900 bg-white px-4 text-lg text-slate-900 placeholder:text-slate-500 disabled:border-slate-400 disabled:bg-slate-100 disabled:text-slate-500;
+  }
+
+  .field-input[aria-invalid="true"] {
+    @apply border-red-700 ring-2 ring-red-700;
   }
 }
