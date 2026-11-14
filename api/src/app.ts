@@ -14,7 +14,12 @@ import bpaMockRouter from './mock/bpa.mock';
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: env.FRONTEND_ORIGIN }));
+app.use(
+  cors({
+    origin: env.FRONTEND_ORIGIN === '*' ? true : env.FRONTEND_ORIGIN,
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/api/health', healthRouter);

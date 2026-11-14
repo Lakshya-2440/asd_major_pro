@@ -66,11 +66,13 @@ export class BpaClient {
       return parsed.data;
     } catch (error) {
       if (error instanceof BpaAdapterError) throw error;
-      const isAxiosError = axios.isAxiosError(error);
-      const status = isAxiosError ? error.response?.status : undefined;
-      if (status) throw new BpaAdapterError(`BPA returned HTTP ${status}`, 'http_error');
-      const timeout = isAxiosError && ['ECONNABORTED', 'ETIMEDOUT'].includes(error.code ?? '');
-      throw new BpaAdapterError(timeout ? 'BPA request timed out' : 'BPA service is unavailable', timeout ? 'timeout' : 'unavailable');
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status) throw new BpaAdapterError(`BPA returned HTTP ${status}`, 'http_error');
+        const timeout = ['ECONNABORTED', 'ETIMEDOUT'].includes(error.code ?? '');
+        throw new BpaAdapterError(timeout ? 'BPA request timed out' : 'BPA service is unavailable', timeout ? 'timeout' : 'unavailable');
+      }
+      throw new BpaAdapterError('BPA service is unavailable', 'unavailable');
     }
   }
 }

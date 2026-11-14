@@ -9,7 +9,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().default('development-only-change-me'),
   ANALYSIS_SERVICE_URL: z.string().url().default('http://localhost:8000'),
   BPA_MOCK_URL: z.string().url().default('http://localhost:3000/mock/bpa/atc-records'),
-  FRONTEND_ORIGIN: z.string().url().default('http://localhost:5173'),
+  FRONTEND_ORIGIN: z.string().default('*'),
 });
 
 export const env = envSchema.parse(process.env);

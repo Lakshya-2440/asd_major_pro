@@ -85,16 +85,18 @@ export class AnalysisClient {
         { timeout: this.timeoutMs },
       );
     } catch (error) {
-      const isAxiosError = axios.isAxiosError(error);
-      const statusCode = isAxiosError ? error.response?.status : undefined;
-      if (statusCode) {
-        throw new AnalysisServiceError(`Analysis service returned HTTP ${statusCode}`, 'http_error', statusCode);
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        if (statusCode) {
+          throw new AnalysisServiceError(`Analysis service returned HTTP ${statusCode}`, 'http_error', statusCode);
+        }
+        const timedOut = ['ECONNABORTED', 'ETIMEDOUT'].includes(error.code ?? '');
+        throw new AnalysisServiceError(
+          timedOut ? 'Analysis service request timed out' : 'Analysis service is unavailable',
+          timedOut ? 'timeout' : 'unavailable',
+        );
       }
-      const timedOut = isAxiosError && ['ECONNABORTED', 'ETIMEDOUT'].includes(error.code ?? '');
-      throw new AnalysisServiceError(
-        timedOut ? 'Analysis service request timed out' : 'Analysis service is unavailable',
-        timedOut ? 'timeout' : 'unavailable',
-      );
+      throw new AnalysisServiceError('Analysis service is unavailable', 'unavailable');
     }
     const parsed = analysisResponseSchema.safeParse(response.data);
     if (!parsed.success) {
@@ -117,16 +119,18 @@ export class AnalysisClient {
         { timeout: this.timeoutMs },
       );
     } catch (error) {
-      const isAxiosError = axios.isAxiosError(error);
-      const statusCode = isAxiosError ? error.response?.status : undefined;
-      if (statusCode) {
-        throw new AnalysisServiceError(`Analysis service returned HTTP ${statusCode}`, 'http_error', statusCode);
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        if (statusCode) {
+          throw new AnalysisServiceError(`Analysis service returned HTTP ${statusCode}`, 'http_error', statusCode);
+        }
+        const timedOut = ['ECONNABORTED', 'ETIMEDOUT'].includes(error.code ?? '');
+        throw new AnalysisServiceError(
+          timedOut ? 'Analysis service request timed out' : 'Analysis service is unavailable',
+          timedOut ? 'timeout' : 'unavailable',
+        );
       }
-      const timedOut = isAxiosError && ['ECONNABORTED', 'ETIMEDOUT'].includes(error.code ?? '');
-      throw new AnalysisServiceError(
-        timedOut ? 'Analysis service request timed out' : 'Analysis service is unavailable',
-        timedOut ? 'timeout' : 'unavailable',
-      );
+      throw new AnalysisServiceError('Analysis service is unavailable', 'unavailable');
     }
     const parsed = recomputeResponseSchema.safeParse(response.data);
     if (!parsed.success) {

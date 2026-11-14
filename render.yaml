@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: auto-atc-analysis
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: HF_TOKEN
+        sync: false
+
+  - type: web
+    name: auto-atc-api
+    runtime: node
+    rootDir: api
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ANALYSIS_SERVICE_URL
+        fromService:
+          type: web
+          name: auto-atc-analysis
+          property: host
+      - key: DATABASE_URL
+        fromDatabase:
+          name: auto-atc-db
+          property: connectionString
+
+databases:
+  - name: auto-atc-db
+    databaseName: atc_db
+    user: atc_user
+    plan: free
+    region: oregon
