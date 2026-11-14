@@ -1,0 +1,10 @@
+{
+  "name": "auto-atc",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix app install && npm --prefix app run build",
+    "dev": "npm --prefix app run dev",
+    "test": "npm --prefix app test"
+  }
+}

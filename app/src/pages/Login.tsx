@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { ShieldCheck, LogIn, AlertCircle, Zap } from "lucide-react";
+import { ShieldCheck, LogIn, Zap } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
