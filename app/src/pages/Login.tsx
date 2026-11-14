@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { ShieldCheck, LogIn, AlertCircle } from 'lucide-react'
+import { useState, useEffect, type FormEvent } from 'react'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { ShieldCheck, LogIn, AlertCircle, Zap } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, loginAsGuest, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const isExplicitLogout = searchParams.get('logout') === 'true'
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
 
   const [email, setEmail] = useState('')
@@ -14,6 +16,22 @@ export default function Login() {
   const [remember, setRemember] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Auto-login default guest typer unless user explicitly chose to log out
+  useEffect(() => {
+    if (!isExplicitLogout && !isAuthenticated) {
+      const timer = setTimeout(() => {
+        loginAsGuest(true)
+        navigate(from, { replace: true })
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [isExplicitLogout, isAuthenticated, loginAsGuest, navigate, from])
+
+  const handleGuestContinue = () => {
+    loginAsGuest(true)
+    navigate(from, { replace: true })
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -63,7 +81,24 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        {/* Prominent Guest Bypass / Instant Access */}
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={handleGuestContinue}
+            className="flex w-full min-h-touch items-center justify-center gap-2 rounded-2xl bg-brand-700 py-3.5 text-base font-extrabold text-white shadow-lg hover:bg-brand-800 active:scale-[0.99] transition-transform"
+          >
+            <Zap size={20} className="text-brand-200" />
+            <span>Continue as Field Typer</span>
+          </button>
+          <div className="mt-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">or sign in</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
             <input
@@ -103,14 +138,14 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full min-h-touch items-center justify-center gap-2 rounded-xl bg-brand-700 py-3 text-base font-bold text-white shadow-lg hover:bg-brand-800 active:bg-brand-900 disabled:opacity-60"
+            className="flex w-full min-h-touch items-center justify-center gap-2 rounded-xl border-2 border-slate-900 bg-white py-3 text-base font-bold text-slate-900 shadow hover:bg-slate-50 active:bg-slate-100 disabled:opacity-60"
           >
             {loading ? (
               <span>Authenticating...</span>
             ) : (
               <>
                 <LogIn size={20} />
-                <span>Sign In to Field App</span>
+                <span>Sign In with Password</span>
               </>
             )}
           </button>

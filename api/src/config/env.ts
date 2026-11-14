@@ -10,6 +10,7 @@ const envSchema = z.object({
   ANALYSIS_SERVICE_URL: z.string().url().default('http://localhost:8000'),
   BPA_MOCK_URL: z.string().url().default('http://localhost:3000/mock/bpa/atc-records'),
   FRONTEND_ORIGIN: z.string().default('*'),
+  DEMO_MODE: z.coerce.boolean().default(true),
 });
 
 export const env = envSchema.parse(process.env);

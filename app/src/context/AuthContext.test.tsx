@@ -42,6 +42,18 @@ describe('AuthContext', () => {
     expect(result.current.user?.name).toBe('Ramesh')
   })
 
+  it('loginAsGuest logs in default guest typer without network request', () => {
+    const { result } = setup()
+    act(() => {
+      result.current.loginAsGuest()
+    })
+    expect(post).not.toHaveBeenCalled()
+    expect(result.current.isAuthenticated).toBe(true)
+    expect(result.current.role).toBe('typer')
+    expect(result.current.user?.name).toBe('Field Typer (Guest)')
+    expect(result.current.token).toBe('guest-token-typer-001')
+  })
+
   it('uses sessionStorage by default and localStorage when remember me is on', async () => {
     post.mockResolvedValue({ data: session })
     const { result } = setup()

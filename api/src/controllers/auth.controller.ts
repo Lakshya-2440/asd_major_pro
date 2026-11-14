@@ -73,5 +73,10 @@ export function getCurrentUser(req: Request, res: Response): void {
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
-  res.json({ id: req.user.userId, name: req.user.name, role: req.user.role });
+  res.json({
+    id: req.user.id || req.user.userId,
+    code: req.user.code || 'TYPER-001',
+    name: req.user.name,
+    role: req.user.role,
+  });
 }

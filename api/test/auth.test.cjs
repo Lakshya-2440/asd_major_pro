@@ -1,7 +1,8 @@
+process.env.NODE_ENV = 'test';
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const jwt = require('jsonwebtoken');
-const { authorizeRoles, authenticateToken } = require('../dist/middlewares/auth.middleware');
+const { authorizeRoles, authenticateToken, DEFAULT_GUEST_USER } = require('../dist/middlewares/auth.middleware');
 const { createLoginHandler } = require('../dist/controllers/auth.controller');
 
 const secret = 'auth-test-secret';
@@ -50,6 +51,35 @@ test('authenticateToken rejects expired tokens', () => {
   authenticateToken({ header: () => `Bearer ${token}` }, response, () => { continued = true; });
   assert.equal(state.statusCode, 401);
   assert.equal(continued, false);
+});
+
+test('authenticateToken falls back to guest typer in demo mode when header is missing or invalid', () => {
+  const orig = process.env.DEMO_MODE;
+  process.env.DEMO_MODE = 'true';
+  try {
+    const { response, state } = responseRecorder();
+    let continued = false;
+    const req1 = { header: () => undefined };
+    authenticateToken(req1, response, () => { continued = true; });
+    assert.equal(continued, true);
+    assert.equal(req1.user?.userId, 'guest-typer-001');
+    assert.equal(req1.user?.code, 'TYPER-001');
+    assert.equal(req1.user?.role, 'typer');
+    assert.equal(req1.user?.name, 'Field Typer (Guest)');
+
+    // Missing token
+    continued = false;
+    const req2 = { header: () => 'Bearer invalid-token' };
+    authenticateToken(req2, response, () => { continued = true; });
+    assert.equal(continued, true);
+    assert.equal(req2.user?.userId, 'guest-typer-001');
+  } finally {
+    if (orig !== undefined) {
+      process.env.DEMO_MODE = orig;
+    } else {
+      delete process.env.DEMO_MODE;
+    }
+  }
 });
 
 test('authorizeRoles rejects a logged-in user with a disallowed role', () => {

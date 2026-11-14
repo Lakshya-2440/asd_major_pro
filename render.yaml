@@ -38,6 +38,8 @@ services:
         fromDatabase:
           name: auto-atc-db
           property: connectionString
+      - key: DEMO_MODE
+        value: "true"
 
 databases:
   - name: auto-atc-db

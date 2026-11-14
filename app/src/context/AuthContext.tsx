@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import api from '../services/api'
 import { clearSession, loadSession, saveSession } from '../services/session'
-import type { Role, Session, User } from '../types/auth'
+import { GUEST_SESSION, type Role, type Session, type User } from '../types/auth'
 
 interface AuthContextValue {
   user: User | null
@@ -9,6 +9,7 @@ interface AuthContextValue {
   role: Role | null
   isAuthenticated: boolean
   login: (email: string, password: string, remember?: boolean) => Promise<void>
+  loginAsGuest: (remember?: boolean) => void
   logout: () => void
 }
 
@@ -24,6 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(data)
   }, [])
 
+  const loginAsGuest = useCallback((remember = true) => {
+    saveSession(GUEST_SESSION, remember)
+    setSession(GUEST_SESSION)
+  }, [])
+
   const logout = useCallback(() => {
     clearSession()
     setSession(null)
@@ -36,9 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: session?.user.role ?? null,
       isAuthenticated: session !== null,
       login,
+      loginAsGuest,
       logout,
     }),
-    [session, login, logout],
+    [session, login, loginAsGuest, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

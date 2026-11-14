@@ -1,8 +1,15 @@
+import { useNavigate } from 'react-router-dom'
 import { User, LogOut, CheckCircle, Database, Smartphone } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Profile() {
   const { user, role, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login?logout=true', { replace: true })
+  }
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -66,7 +73,7 @@ export default function Profile() {
       {/* Logout Action */}
       <button
         type="button"
-        onClick={logout}
+        onClick={handleLogout}
         className="flex min-h-touch w-full items-center justify-center gap-2 rounded-2xl border-2 border-rose-200 bg-rose-50 py-3.5 text-sm font-extrabold text-rose-700 transition hover:bg-rose-100 active:scale-[0.99]"
       >
         <LogOut size={18} />
